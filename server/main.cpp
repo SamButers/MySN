@@ -49,11 +49,7 @@ int userCounter;
 
 int epollDescriptor;
 
-//fd_set userSet;
-//int maxDescriptor;
-
 sem_t usersSemaphor, roomsSemaphor;
-//sem_t maxDescriptorSemaphor;
 
 char flushBuffer[FLUSH_BUFFER_SIZE];
 
@@ -66,6 +62,30 @@ void clearDescriptor(int descriptor) {
     else {
         printf("Flushed bytes: %d\n", readBytes);
         getchar();
+    }
+}
+
+int sendErrorResponse(int descriptor, char functionId, char *buffer) {
+    int writtenBytes;
+
+    int integerResponse;
+    char byteResponse;
+
+    buffer[0] = 0;
+    buffer[1] = functionId;
+
+    switch(functionId) {
+        case -1:
+            return write(descriptor, buffer, 2) != 2;
+
+        case 0:
+            integerResponse = -1;
+            memcpy(buffer + 2, &integerResponse, 4);
+
+            return write(descriptor, buffer, 6) != 6;
+
+        default:
+            return 1;
     }
 }
 
@@ -84,11 +104,11 @@ int loginUser(int descriptor, char *displayName, int displayNameSize) {
         newUser->name = (char*) malloc(displayNameSize);
 
         printf("Copying username...\n");
-        getchar();
+        //getchar();
         
         memcpy(newUser->name, displayName, displayNameSize);
 
-        getchar();
+        //getchar();
 
         return userCounter++;
     }
@@ -97,7 +117,7 @@ int loginUser(int descriptor, char *displayName, int displayNameSize) {
         return users[descriptor]->id;
 }
 
-void logOff(int descriptor) {
+void logoutUser(int descriptor) {
     epoll_ctl(epollDescriptor, EPOLL_CTL_DEL, descriptor, NULL);
 
     User *user = users[descriptor];
@@ -110,6 +130,7 @@ void logOff(int descriptor) {
 void *userOperationsHandler(void *params) {
     int updatedDescriptors, bytesRead;
     char functionNumber;
+    char responseBuffer[18];
     struct epoll_event events[MAX_USERS];
 
     while(1) {
@@ -122,12 +143,15 @@ void *userOperationsHandler(void *params) {
             if(bytesRead != 1) {
                 if(bytesRead == 0) {
                     printf("User sudden disconnection.\n");
-                    logOff(events[c].data.fd);
+                    logoutUser(events[c].data.fd);
                     continue;
                 }
 
                 printf("Error occurred while reading target function information.\n");
+                
                 clearDescriptor(events[c].data.fd);
+                sendErrorResponse(events[c].data.fd, -1, responseBuffer);
+
                 continue;
             }
 
@@ -139,7 +163,9 @@ void *userOperationsHandler(void *params) {
                     bytesRead = read(events[c].data.fd, &usernameLength, 1);
                     if(bytesRead != 1) {
                         printf("Error occurred while reading username length.\n");
+                        
                         clearDescriptor(events[c].data.fd);
+                        sendErrorResponse(events[c].data.fd, 0, responseBuffer);
                     }
 
                     char *username = (char*) malloc(usernameLength + 1);
@@ -147,13 +173,19 @@ void *userOperationsHandler(void *params) {
                     bytesRead = read(events[c].data.fd, username, (int) usernameLength);
                     if(bytesRead != usernameLength) {
                         printf("Error occurred while reading username.\n");
+                        
                         clearDescriptor(events[c].data.fd);
+                        sendErrorResponse(events[c].data.fd, 0, responseBuffer);
                     }
 
                     username[usernameLength] = '\0';
                     int id = loginUser(events[c].data.fd, username, usernameLength + 1);
 
-                    write(events[c].data.fd, &id, 4);
+                    responseBuffer[0] = 0;
+                    responseBuffer[1] = 0;
+                    memcpy(responseBuffer + 2, &id, 4);
+
+                    write(events[c].data.fd, responseBuffer, 6);
 
                     printf("ID: %d\nUsername: %s\n", id, username);
 
@@ -161,9 +193,20 @@ void *userOperationsHandler(void *params) {
                     break;
                 }
 
-                case 1:
+                case 1: {
                     // Logout
+                    printf("Logout\n");
+
+                    //responseBuffer[0] = 0;
+                    //responseBuffer[1] = 0;
+                    //responseBuffer[2] = 0;
+
+                    //write(events[c].data.fd, responseBuffer, 3);
+
+                    logoutUser(events[c].data.fd);
+
                     break;
+                }
 
                 case 2:
                     // Create room
@@ -188,6 +231,8 @@ void *userOperationsHandler(void *params) {
 
         //updateClients(updates);
     }
+
+    printf("Broke from infinite while?\n");
 }
 
 int main() {
@@ -203,7 +248,6 @@ int main() {
     struct epoll_event *event;
 
     addressSize = sizeof(clientAddress);
-    //maxDescriptor = 0;
     userCounter = 0;
     connectionsCounter = 0;
 
@@ -232,11 +276,8 @@ int main() {
         return 1;
     }
 
-    //FD_ZERO(userSet);
-
     sem_init(&usersSemaphor, 0, 1);
     sem_init(&roomsSemaphor, 0, 1);
-    //sem_init(&maxDescriptorSemaphor, 0, 1);
 
     pthread_create(&userOperationsThread, NULL, &userOperationsHandler, NULL);
     
@@ -249,19 +290,12 @@ int main() {
         }
 
         if(connectionsCounter < MAX_USERS) {
-            //sem_wait(&maxDescriptorSemaphor);
-
-            //if(maxDescriptor < clientDescriptor + 1)
-            //    maxDescriptor = clientDescriptor + 1;
-
-            //sem_post(&maxDescriptorSemaphor);
-
             event = (struct epoll_event*) malloc(sizeof(epoll_event));
             event->events = EPOLLIN;
             event->data.fd = clientDescriptor;
 
             epoll_ctl(epollDescriptor, EPOLL_CTL_ADD, clientDescriptor, event);
-            //FD_SET(clientDescriptor, &userSet);
+
             // pingNewUserDescriptor();
             connectionsCounter++;
         }

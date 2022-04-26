@@ -25,6 +25,13 @@ void loginUser(int socketDescriptor) {
 	send(socketDescriptor, buffer, 6, 0);
 }
 
+void logoutUser(int socketDescriptor) {
+	char buffer[1];
+	buffer[0] = 1;
+
+	send(socketDescriptor, buffer, 1, 0);
+}
+
 int main() {
 	struct sockaddr_in serverAddress;
 	int socketDescriptor;
@@ -48,7 +55,8 @@ int main() {
 	// Send valid login
 	loginUser(socketDescriptor);
 
-	getchar();
+	// Send valid logout
+	logoutUser(socketDescriptor);
 
 	close(socketDescriptor);
 
