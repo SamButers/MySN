@@ -5,7 +5,8 @@
 #include <netdb.h>
 #include <string.h>
 #include <unistd.h>
-#include <sys/select.h>
+
+#include <sys/epoll.h>
 
 #include <pthread.h>
 #include <semaphore.h>
@@ -41,17 +42,63 @@ typedef struct Message {
 
 User users[MAX_USERS];
 Room rooms[MAX_ROOMS];
-
-fd_set userSet;
-
 int userCounter;
 
+int epollDescriptor;
+
+//fd_set userSet;
+//int maxDescriptor;
+
+sem_t usersSemaphor, roomsSemaphor;
+//sem_t maxDescriptorSemaphor;
+
 void *userOperationsHandler(void *params) {
-    
-}
+    int updatedDescriptors, bytesRead;
+    char functionNumber;
+    struct epoll_event events[MAX_USERS];
 
-void *chatroomHandler(void *params) {
+    while(1) {
+        updatedDescriptors = epoll_wait(epollDescriptor, events, MAX_USERS, -1);
+        
+        for(int c = 0; c < updatedDescriptors; c++) {
+            bytesRead = read(events[c].data.fd, &functionNumber, 1);
+            if(bytesRead != 1) {
+                printf("Error occurred while reading target function information.\n");
+                continue;
+            }
 
+            switch(functionNumber) {
+                case 0:
+                    // Login
+                    break;
+
+                case 1:
+                    // Logout
+                    break;
+
+                case 2:
+                    // Create room
+                    break;
+
+                case 3:
+                    // Join room
+                    break;
+
+                case 4:
+                    // Send message
+                    break;
+
+                case 5:
+                    // Change info
+                    break;
+
+                default:
+                    printf("Invalid function called: %d\n", (int) functionNumber);
+            }
+        }
+
+        //updateClients(updates);
+    }
 }
 
 int main() {
@@ -63,8 +110,12 @@ int main() {
 
     pthread_t userOperationsThread, chatroomThreads[MAX_ROOMS];
 
-    addressSize = sizeof(clientAddress);
+    struct epoll_event *event;
 
+    addressSize = sizeof(clientAddress);
+    maxDescriptor = 0;
+
+    memset((char*) &serverAddress, 0, sizeof(serverAddress));
     serverAddress.sin_family = AF_INET;
     serverAddress.sin_addr.s_addr = inet(SERVER_IP);
     serverAddress.sin_port = htons(SERVER_PORT);
@@ -84,7 +135,16 @@ int main() {
         return 1;
     }
 
-    FD_ZERO(userSet);
+    if((epollDescriptor = epoll_create1(0)) < 0) {
+        printf("Error during epoll descriptor creation.\n");
+        return 1;
+    }
+
+    //FD_ZERO(userSet);
+
+    sem_init(&usersSemaphor, 0, 1);
+    sem_init(&roomsSemaphor, 0, 1);
+    sem_init(&maxDescriptorSemaphor, 0, 1);
 
     pthread_create(&userOperationsThread, NULL, &userOperationsHandler, NULL);
     
@@ -96,7 +156,19 @@ int main() {
         }
 
         if(userCounter < MAX_USERS) {
-            FD_SET(clientDescriptor, &userSet);
+            //sem_wait(&maxDescriptorSemaphor);
+
+            //if(maxDescriptor < clientDescriptor + 1)
+            //    maxDescriptor = clientDescriptor + 1;
+
+            //sem_post(&maxDescriptorSemaphor);
+
+            event = malloc(sizeof(epoll_event));
+            event->events = EPOLLIN;
+            event->data.fd = clientDescriptor;
+
+            epoll_ctl(epollDescriptor, EPOLL_CTL_ADD, clientDescriptor, event);
+            //FD_SET(clientDescriptor, &userSet);
             // pingNewUserDescriptor();
             userCounter++;
         }
@@ -106,6 +178,9 @@ int main() {
             close(userDescriptor);
         }
     }
+
+    //freeEvents(epollDescriptor);
+    close(epollDescriptor);
 
     return 0;
 }
