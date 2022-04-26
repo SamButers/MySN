@@ -22,6 +22,7 @@
 #define MAX_ROOMS   256
 #define SERVER_IP   "127.0.0.1"
 #define SERVER_PORT 8080
+#define FLUSH_BUFFER_SIZE 64000
 
 typedef struct sockaddr_in sockaddr_in;
 
@@ -54,13 +55,18 @@ int epollDescriptor;
 sem_t usersSemaphor, roomsSemaphor;
 //sem_t maxDescriptorSemaphor;
 
+char flushBuffer[FLUSH_BUFFER_SIZE];
+
 //Utility functions
 void clearDescriptor(int descriptor) {
-    static int devNull = open("/dev/null", O_WRONLY);
+    int readBytes = read(descriptor, &flushBuffer, FLUSH_BUFFER_SIZE);
 
-    int splicedBytes = splice(descriptor, NULL, devNull, NULL, INT_MAX, SPLICE_F_MOVE);
-    if(splicedBytes < 0)
-        printf("Error on splicing to /dev/null.\n");
+    if(readBytes < 0)
+        printf("Error on flushing.\n");
+    else {
+        printf("Flushed bytes: %d\n", readBytes);
+        getchar();
+    }
 }
 
 // User operation functions
@@ -75,14 +81,30 @@ int loginUser(int descriptor, char *displayName, int displayNameSize) {
         newUser->pictureId = 0;
         newUser->descriptor = descriptor;
         newUser->isInRoom = 0;
+        newUser->name = (char*) malloc(displayNameSize);
 
+        printf("Copying username...\n");
+        getchar();
+        
         memcpy(newUser->name, displayName, displayNameSize);
+
+        getchar();
 
         return userCounter++;
     }
 
     else
         return users[descriptor]->id;
+}
+
+void logOff(int descriptor) {
+    epoll_ctl(epollDescriptor, EPOLL_CTL_DEL, descriptor, NULL);
+
+    User *user = users[descriptor];
+    users.erase(descriptor);
+
+    free(user->name);
+    delete user;
 }
 
 void *userOperationsHandler(void *params) {
@@ -93,10 +115,17 @@ void *userOperationsHandler(void *params) {
     while(1) {
         printf("Epoll waiting...\n");
         updatedDescriptors = epoll_wait(epollDescriptor, events, MAX_USERS, -1);
+        printf("Descriptors updated.\n");
         
         for(int c = 0; c < updatedDescriptors; c++) {
             bytesRead = read(events[c].data.fd, &functionNumber, 1);
             if(bytesRead != 1) {
+                if(bytesRead == 0) {
+                    printf("User sudden disconnection.\n");
+                    logOff(events[c].data.fd);
+                    continue;
+                }
+
                 printf("Error occurred while reading target function information.\n");
                 clearDescriptor(events[c].data.fd);
                 continue;
@@ -104,6 +133,7 @@ void *userOperationsHandler(void *params) {
 
             switch(functionNumber) {
                 case 0: {
+                    printf("Login\n");
                     int usernameLength = 0;
 
                     bytesRead = read(events[c].data.fd, &usernameLength, 1);
@@ -124,6 +154,8 @@ void *userOperationsHandler(void *params) {
                     int id = loginUser(events[c].data.fd, username, usernameLength + 1);
 
                     write(events[c].data.fd, &id, 4);
+
+                    printf("ID: %d\nUsername: %s\n", id, username);
 
                     free(username);
                     break;
