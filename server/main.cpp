@@ -27,15 +27,14 @@
 typedef struct sockaddr_in sockaddr_in;
 
 typedef struct User {
-    int id, pictureId, descriptor;
+    int id, pictureId, descriptor, roomId;
     char* name;
-    char isInRoom;
 } User;
 
 typedef struct Room {
     int id, userLimit;
     char* name;
-    User **users;
+    std::map<int, User*> users;
 } Room;
 
 typedef struct Message {
@@ -49,7 +48,7 @@ int userCounter;
 
 int epollDescriptor;
 
-sem_t usersSemaphor, roomsSemaphor;
+sem_t epollSemaphor, usersSemaphor, roomsSemaphor;
 
 char flushBuffer[FLUSH_BUFFER_SIZE];
 
@@ -78,6 +77,7 @@ int sendErrorResponse(int descriptor, char functionId, char *buffer) {
         case -1:
             return write(descriptor, buffer, 2) != 2;
 
+        case 2:
         case 0:
             integerResponse = -1;
             memcpy(buffer + 2, &integerResponse, 4);
@@ -87,6 +87,18 @@ int sendErrorResponse(int descriptor, char functionId, char *buffer) {
         default:
             return 1;
     }
+}
+
+int getRandomRoomId() {
+    int id, componentOne, componentTwo;
+
+    do {
+        componentOne = rand();
+        componentTwo = rand();
+        id = componentOne | componentTwo << 15;
+    } while(rooms.find(id) != rooms.end());
+
+    return id;
 }
 
 // User operation functions
@@ -100,7 +112,7 @@ int loginUser(int descriptor, char *displayName, int displayNameSize) {
         newUser->id = userCounter;
         newUser->pictureId = 0;
         newUser->descriptor = descriptor;
-        newUser->isInRoom = 0;
+        newUser->roomId = -1;
         newUser->name = (char*) malloc(displayNameSize);
 
         printf("Copying username...\n");
@@ -118,13 +130,50 @@ int loginUser(int descriptor, char *displayName, int displayNameSize) {
 }
 
 void logoutUser(int descriptor) {
+    sem_wait(&epollSemaphor);
+
     epoll_ctl(epollDescriptor, EPOLL_CTL_DEL, descriptor, NULL);
+
+    sem_post(&epollSemaphor);
 
     User *user = users[descriptor];
     users.erase(descriptor);
 
     free(user->name);
     delete user;
+}
+
+int createRoom(char *roomName, int roomNameLength, int userLimit) {
+    Room *newRoom;
+
+    newRoom->id = getRandomRoomId();
+    newRoom->userLimit = userLimit;
+    newRoom->name = (char*) malloc(roomNameLength);
+    memcpy(newRoom->name, roomName, roomNameLength);
+
+    rooms[newRoom->id] = newRoom;
+
+    return newRoom->id;
+}
+
+int joinRoom(int descriptor, int roomId) {
+    Room *targetRoom; = rooms.find(roomId) != rooms.end() ? rooms[roomId] : NULL; //Storing the iterator may be more efficient, but perhaps less readable
+    User *targetUser = users.find(descriptor) != users.end() ? users[descriptor] : NULL;
+
+    if(targetRoom == NULL || targetUser == NULL)
+        return -1;
+
+    if(targetUser->roomId != -1)
+        return -3;
+
+    else if(targetRoom->users.size() >= targetRoom->userLimit)
+        return -2;
+
+    targetUser->roomId = roomId;
+    targetRoom->users[descriptor] = targetUser;
+    targetRoom->userLimit++;
+
+    return roomId;
 }
 
 void *userOperationsHandler(void *params) {
@@ -158,7 +207,11 @@ void *userOperationsHandler(void *params) {
             switch(functionNumber) {
                 case 0: {
                     printf("Login\n");
-                    int usernameLength = 0;
+
+                    int usernameLength, id;
+                    char *username;
+
+                    usernameLength = 0;
 
                     bytesRead = read(events[c].data.fd, &usernameLength, 1);
                     if(bytesRead != 1) {
@@ -168,7 +221,7 @@ void *userOperationsHandler(void *params) {
                         sendErrorResponse(events[c].data.fd, 0, responseBuffer);
                     }
 
-                    char *username = (char*) malloc(usernameLength + 1);
+                    username = (char*) malloc(usernameLength + 1);
 
                     bytesRead = read(events[c].data.fd, username, (int) usernameLength);
                     if(bytesRead != usernameLength) {
@@ -179,7 +232,7 @@ void *userOperationsHandler(void *params) {
                     }
 
                     username[usernameLength] = '\0';
-                    int id = loginUser(events[c].data.fd, username, usernameLength + 1);
+                    id = loginUser(events[c].data.fd, username, usernameLength + 1);
 
                     responseBuffer[0] = 0;
                     responseBuffer[1] = 0;
@@ -210,6 +263,64 @@ void *userOperationsHandler(void *params) {
 
                 case 2:
                     // Create room
+                    print("Create room\n");
+
+                    int roomNameLength, userLimit;
+                    char *roomName;
+
+                    int roomId;
+
+                    bytesRead = read(events[c].data.fd, &roomNameLength, 1);
+                    if(bytesRead != 1) {
+                        printf("Error occurred while reading room name length.\n");
+                        
+                        clearDescriptor(events[c].data.fd);
+                        sendErrorResponse(events[c].data.fd, 2, responseBuffer);
+                    }
+
+                    roomName = (char*) malloc(roomNameLength + 1);
+
+                    bytesRead = read(events[c].data.fd, &roomName, roomNameLength);
+                    if(bytesRead != roomNameLength) {
+                        printf("Error occurred while reading room name.\n");
+                        
+                        clearDescriptor(events[c].data.fd);
+                        sendErrorResponse(events[c].data.fd, 2, responseBuffer);
+                    }
+
+                    roomName[roomNameLength] = '\0';
+
+                    bytesRead = read(events[c].data.fd, &userLimit, 1);
+                    if(bytesRead != 1) {
+                        printf("Error occurred while reading room limit.\n");
+                        
+                        clearDescriptor(events[c].data.fd);
+                        sendErrorResponse(events[c].data.fd, 2, responseBuffer);
+                    }
+
+                    if(userLimit < 2) {
+                        printf("Invalid room limit.\n");
+
+                        responseBuffer[0] = 0;
+                        responseBuffer[1] = 2;
+                        roomId = -4;
+                        memcpy(responseBuffer + 2, &roomId, 4);
+
+                        write(events[c].data.fd, responseBuffer, 6);
+                        break;
+                    }
+
+                    roomId = createRoom(roomName, roomNameLength + 1, userLimit);
+                    roomId = joinRoom(events[c].data.fd, roomId);
+
+                    responseBuffer[0] = 0;
+                    responseBuffer[1] = 2;
+                    memcpy(responseBuffer + 2, &roomId, 4);
+
+                    write(events[c].data.fd, responseBuffer, 6);
+
+                    free(roomName);
+
                     break;
 
                 case 3:
@@ -278,6 +389,7 @@ int main() {
 
     sem_init(&usersSemaphor, 0, 1);
     sem_init(&roomsSemaphor, 0, 1);
+    sem_init(&epollSemaphor, 0, 1);
 
     pthread_create(&userOperationsThread, NULL, &userOperationsHandler, NULL);
     
@@ -294,7 +406,11 @@ int main() {
             event->events = EPOLLIN;
             event->data.fd = clientDescriptor;
 
+            sem_wait(&epollSemaphor);
+
             epoll_ctl(epollDescriptor, EPOLL_CTL_ADD, clientDescriptor, event);
+
+            sem_post(&epollSemaphor);
 
             // pingNewUserDescriptor();
             connectionsCounter++;
