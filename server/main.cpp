@@ -77,6 +77,7 @@ int sendErrorResponse(int descriptor, char functionId, char *buffer) {
         case -1:
             return write(descriptor, buffer, 2) != 2;
 
+        case 3:
         case 2:
         case 0:
             integerResponse = -1;
@@ -157,7 +158,7 @@ int createRoom(char *roomName, int roomNameLength, int userLimit) {
 }
 
 int joinRoom(int descriptor, int roomId) {
-    Room *targetRoom; = rooms.find(roomId) != rooms.end() ? rooms[roomId] : NULL; //Storing the iterator may be more efficient, but perhaps less readable
+    Room *targetRoom = rooms.find(roomId) != rooms.end() ? rooms[roomId] : NULL; //Storing the iterator may be more efficient, but perhaps less readable
     User *targetUser = users.find(descriptor) != users.end() ? users[descriptor] : NULL;
 
     if(targetRoom == NULL || targetUser == NULL)
@@ -261,9 +262,9 @@ void *userOperationsHandler(void *params) {
                     break;
                 }
 
-                case 2:
+                case 2: {
                     // Create room
-                    print("Create room\n");
+                    printf("Create room\n");
 
                     int roomNameLength, userLimit;
                     char *roomName;
@@ -322,10 +323,30 @@ void *userOperationsHandler(void *params) {
                     free(roomName);
 
                     break;
+                }
 
-                case 3:
+                case 3: {
                     // Join room
+                    int roomId;
+
+                    bytesRead = read(events[c].data.fd, &roomId, 4);
+                    if(bytesRead != 4) {
+                        printf("Error occurred while reading room id.\n");
+                        
+                        clearDescriptor(events[c].data.fd);
+                        sendErrorResponse(events[c].data.fd, 3, responseBuffer);
+                    }
+
+                    roomId = joinRoom(events[c].data.fd, roomId);
+
+                    responseBuffer[0] = 0;
+                    responseBuffer[1] = 3;
+                    memcpy(responseBuffer + 2, &roomId, 4);
+
+                    write(events[c].data.fd, responseBuffer, 6);
+
                     break;
+                }
 
                 case 4:
                     // Send message
