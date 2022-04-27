@@ -17,12 +17,15 @@
 #include <limits.h>
 
 #include <map>
+#include <iterator>
 
 #define MAX_USERS   256
 #define MAX_ROOMS   256
 #define SERVER_IP   "127.0.0.1"
 #define SERVER_PORT 8080
 #define FLUSH_BUFFER_SIZE 64000
+
+using namespace std;
 
 typedef struct sockaddr_in sockaddr_in;
 
@@ -42,8 +45,8 @@ typedef struct Message {
     char *content;
 } Message;
 
-std::map<int, User*> users;
-std::map<int, Room*> rooms;
+map<int, User*> users;
+map<int, Room*> rooms;
 int userCounter;
 
 int epollDescriptor;
@@ -84,6 +87,11 @@ int sendErrorResponse(int descriptor, char functionId, char *buffer) {
             memcpy(buffer + 2, &integerResponse, 4);
 
             return write(descriptor, buffer, 6) != 6;
+
+        case 4:
+            buffer[2] = -1;
+
+            return write(descriptor, buffer, 3) != 3;
 
         default:
             return 1;
@@ -175,6 +183,45 @@ int joinRoom(int descriptor, int roomId) {
     targetRoom->userLimit++;
 
     return roomId;
+}
+
+char sendMessage(int descriptor, char *content, int length) {
+    User *targetUser = users.find(descriptor) != users.end() ? users[descriptor] : NULL;
+    Room *targetRoom;
+
+    if(targetUser == NULL)
+        return -1;
+
+    if(targetUser->roomId == -1)
+        return -2;
+
+    targetRoom = rooms.find(targetUser->roomId) != rooms.end() ? rooms[targetUser->roomId] : NULL;
+
+    if(targetRoom == NULL)
+        return -1;
+
+    map<int, User*>::iterator it = targetRoom->users.begin();
+    map<int, User*>::iterator end = targetRoom->users.end();
+
+    int userDescriptor;
+    char *buffer = (char*) malloc(4 + length);
+
+    buffer[0] = 1;
+    buffer[1] = 0;
+    memcpy(buffer + 2, &length, 2);
+    memcpy(buffer + 4, content, length);
+
+    while(it != end) {
+        userDescriptor = it->first;
+
+        if(userDescriptor != descriptor)
+            write(userDescriptor, buffer, length + 4);
+
+        it++;
+    }
+
+    free(buffer);
+    return 0;
 }
 
 void *userOperationsHandler(void *params) {
@@ -327,6 +374,7 @@ void *userOperationsHandler(void *params) {
 
                 case 3: {
                     // Join room
+                    printf("Join room.\n");
                     int roomId;
 
                     bytesRead = read(events[c].data.fd, &roomId, 4);
@@ -348,9 +396,40 @@ void *userOperationsHandler(void *params) {
                     break;
                 }
 
-                case 4:
+                case 4: {
                     // Send message
+                    printf("Send message.\n");
+
+                    int messageLength;
+                    char status;
+                    char *messageContent;
+
+                    bytesRead = read(events[c].data.fd, &messageLength, 2);
+                    if(bytesRead != 2) {
+                        printf("Error occurred while reading message length.\n");
+                        
+                        clearDescriptor(events[c].data.fd);
+                        sendErrorResponse(events[c].data.fd, 4, responseBuffer);
+                    }
+
+                    messageContent = (char*) malloc(messageLength);
+
+                    bytesRead = read(events[c].data.fd, &messageContent, messageLength);
+                    if(bytesRead != messageLength) {
+                        printf("Error occurred while reading message content.\n");
+                        
+                        clearDescriptor(events[c].data.fd);
+                        sendErrorResponse(events[c].data.fd, 4, responseBuffer);
+                    }
+
+                    //messageContent[messageLength] = '\0';
+
+                    status = sendMessage(events[c].data.fd, messageContent, messageLength);
+
+                    free(messageContent);
+
                     break;
+                }
 
                 case 5:
                     // Change info
