@@ -1,3 +1,4 @@
 *.c
 *.bin
 *.out
+node_modules/

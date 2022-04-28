@@ -1,0 +1,18 @@
+{
+  "name": "MySN",
+  "version": "1.0.0",
+  "main": "main.js",
+  "author": "Sam Buters",
+  "license": "MIT",
+  "description": "Instant messaging app",
+  "devDependencies": {
+    "electron": "^18.1.0",
+    "electron-reloader": "^1.2.3"
+  },
+  "scripts": {
+    "start": "electron ."
+  },
+  "dependencies": {
+    "jquery": "^3.6.0"
+  }
+}

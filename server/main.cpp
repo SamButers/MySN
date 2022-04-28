@@ -147,6 +147,8 @@ int loginUser(int descriptor, char *displayName, int displayNameSize) {
         return users[descriptor]->id;
 }
 
+// Pending:
+//  Send update
 int createRoom(char *roomName, int roomNameLength, int userLimit) {
     Room *newRoom;
 
@@ -160,6 +162,8 @@ int createRoom(char *roomName, int roomNameLength, int userLimit) {
     return newRoom->id;
 }
 
+// Pending:
+//  Send update
 int joinRoom(int descriptor, int roomId) {
     Room *targetRoom = rooms.find(roomId) != rooms.end() ? rooms[roomId] : NULL; //Storing the iterator may be more efficient, but perhaps less readable
     User *targetUser = users.find(descriptor) != users.end() ? users[descriptor] : NULL;
@@ -219,6 +223,9 @@ char sendMessage(int descriptor, char *content, int length) {
     return 0;
 }
 
+// Pending:
+//  Delete room if it reaches 0 users
+//  Send update
 int leaveRoom(int descriptor) {
     User *targetUser = users.find(descriptor) != users.end() ? users[descriptor] : NULL;
     Room *targetRoom;
