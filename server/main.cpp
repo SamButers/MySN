@@ -224,6 +224,22 @@ char sendMessage(int descriptor, char *content, int length) {
     return 0;
 }
 
+int leaveRoom(int descriptor) {
+    User *targetUser = users.find(descriptor) != users.end() ? users[descriptor] : NULL;
+    Room *targetRoom;
+
+    if(targetUser == NULL)
+        return -1;
+
+    targetRoom = rooms.find(targetUser->roomId) != rooms.end() ? rooms[targetUser->roomId] : NULL;
+    targetRoom->users.erase(descriptor);
+    targetUser->roomId = -1;
+
+    return 0;
+}
+
+// End of user operations functions
+
 void *userOperationsHandler(void *params) {
     int updatedDescriptors, bytesRead;
     char functionNumber;
@@ -426,12 +442,32 @@ void *userOperationsHandler(void *params) {
 
                     status = sendMessage(events[c].data.fd, messageContent, messageLength);
 
+                    responseBuffer[0] = 0;
+                    responseBuffer[1] = 4;
+                    memcpy(responseBuffer + 2, &status, 1);
+
+                    write(events[c].data.fd, responseBuffer, 3);
+
                     free(messageContent);
 
                     break;
                 }
 
-                case 5:
+                case 5: {
+                    // Leave room
+                    int roomId = leaveRoom(events[c].data.fd);
+
+                    responseBuffer[0] = 0;
+                    responseBuffer[1] = 5;
+                    memcpy(responseBuffer + 2, &roomId, 4);
+
+                    write(events[c].data.fd, responseBuffer, 6);
+
+                    break;
+                }
+
+
+                case 6:
                     // Change info
                     break;
 
