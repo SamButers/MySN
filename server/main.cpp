@@ -109,6 +109,15 @@ int getRandomRoomId() {
 
     return id;
 }
+// End of utility functions
+
+// Update functions
+// Sends update to all users in a room regarding
+// the list of users and to every user regarding
+// the user quantity in a room
+void roomUsersUpdate(int roomId);
+// Sends update to all users regarding the rooms
+void roomsUpdate(int roomId);
 
 // User operation functions
 int loginUser(int descriptor, char *displayName, int displayNameSize) {
@@ -136,20 +145,6 @@ int loginUser(int descriptor, char *displayName, int displayNameSize) {
 
     else
         return users[descriptor]->id;
-}
-
-void logoutUser(int descriptor) {
-    sem_wait(&epollSemaphor);
-
-    epoll_ctl(epollDescriptor, EPOLL_CTL_DEL, descriptor, NULL);
-
-    sem_post(&epollSemaphor);
-
-    User *user = users[descriptor];
-    users.erase(descriptor);
-
-    free(user->name);
-    delete user;
 }
 
 int createRoom(char *roomName, int roomNameLength, int userLimit) {
@@ -238,6 +233,20 @@ int leaveRoom(int descriptor) {
     return 0;
 }
 
+void logoutUser(int descriptor) {
+    sem_wait(&epollSemaphor);
+
+    epoll_ctl(epollDescriptor, EPOLL_CTL_DEL, descriptor, NULL);
+
+    sem_post(&epollSemaphor);
+
+    User *user = users[descriptor];
+    users.erase(descriptor);
+
+    leaveRoom(user->descriptor);
+    free(user->name);
+    delete user;
+}
 // End of user operations functions
 
 void *userOperationsHandler(void *params) {
