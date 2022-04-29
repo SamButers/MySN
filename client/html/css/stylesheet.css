@@ -12,19 +12,33 @@
 
     font-smooth: never;
     -webkit-font-smoothing: none;
+
+    background: linear-gradient(0deg, #fefefe, #d6def2, #fefefe);
 }
 
 .titlebar {
+    position: relative;
     display: flex;
     flex-direction: row;
     justify-content: space-between;
     height: 18px;
     width: 100%;
-    background: linear-gradient(to right, #0c276c, #a5c9f1);
+    background: linear-gradient(90deg, #0c276c, #a5c9f1);
     font-weight: bold;
     image-rendering: crisp-edges;
     image-rendering: pixelated;
     user-select: none;
+    -webkit-user-select: none;
+    -webkit-app-region: drag;
+}
+
+.titlebar > .aux-div {
+    position: absolute;
+    width: 100%;
+    height: 18px;
+    z-index: 1;
+    left: 0;
+    top: 0;
 }
 
 .titlebar > .info {
@@ -35,6 +49,7 @@
 .titlebar > .info > .icon {
     width: 16px;
     margin-right: 3px;
+    margin-left: 3px;
 }
 
 .titlebar > .info > .title {
@@ -48,6 +63,8 @@
     height: 18px;
     justify-content: center;
     align-items: center;
+    z-index: 2;
+    -webkit-app-region: no-drag
 }
 
 .titlebar > .buttons > button {
@@ -72,4 +89,62 @@
 .titlebar > .buttons > button > img {
     width: 100%;
     vertical-align: middle;
+}
+
+.login {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    font-size: 12px;
+}
+
+.login > .title {
+    font-weight: bold;
+    color: #143392;
+    align-self: flex-start;
+    margin-left: 4px;
+}
+
+.login > .avatar {
+    margin-top: 2em;
+    margin-bottom: 1em;
+    border: 1px solid #4d6aa2;
+    border-radius: 4px;
+}
+
+.login > .fields {
+    display: flex;
+    flex-direction: column;
+}
+
+.login > .fields > label {
+    color: #020276;
+    margin-bottom: 0.25em;
+}
+
+.login > .fields > input {
+    border: 1px solid #8296c2;
+    outline: none;
+    margin-bottom: 0.5em;
+}
+
+.login > button {
+    background: linear-gradient(90deg, #ffffff, #dbe2fc);
+    border: 1px solid #f4ac29;
+    outline: 1px solid #36495e;
+    border-radius: 2px;
+    color: #304b8c;
+    font-weight: bold;
+}
+
+.login > button:active {
+    filter: brightness(0.75);
+}
+
+.login > .faded-logo {
+    position: absolute;
+    bottom: 16px;
+    right: 6px;
+    opacity: 0.2;
 }

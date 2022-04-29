@@ -16,6 +16,11 @@ function shit() {
     console.log('shit')
 }
 
-$(document).ready(() => {
+import { createApp } from 'vue';
+import App from './App.js';
+
+createApp(App).mount('#app');
+
+/*$(document).ready(() => {
     console.log($('.buttons'))
-});
+});*/

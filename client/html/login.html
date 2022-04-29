@@ -4,8 +4,15 @@
 
         <script>if (typeof module === 'object') {window.module = module; module = undefined;}</script>
 
+        <script type="importmap">
+            {
+                "imports": {
+                    "vue": "src/vue.global.js"
+                }
+            }
+        </script>
         <script src="src/jquery-3.5.1.min.js"></script>
-        <script src="src/main.js"></script>
+        <script type="module" src="src/main.js"></script>
 
         <script>if (window.module) module = window.module;</script>
 
@@ -18,16 +25,28 @@
         <div class="main">
             <div class="titlebar">
                 <div class="info">
-                    <img class="icon" src="assets/logo.ico" draggable="false">
+                    <img class="icon" src="assets/logo.png" draggable="false">
                     <span class="title">MySN</span>
                 </div>
                 <nav class="buttons">
-                    <button onmouseup="minimizeWindow()"><img src="assets/minimize.png"></button>
-                    <button onmouseup="maximizeWindow()"><img src="assets/maximize.png"></button>
-                    <button onmouseup="closeWindow()"><img src="assets/close.png"></button>
+                    <button onclick="minimizeWindow()"><img src="assets/minimize.png"></button>
+                    <button onclick="maximizeWindow()"><img src="assets/maximize.png"></button>
+                    <button onclick="closeWindow()"><img src="assets/close.png"></button>
                 </nav>
             </div>
-            <h1>aaa</h1>
+
+            <div id="app" class="login">
+                <span class="title">Messenger</span>
+                <img class="avatar" src="assets/avatar.png" draggable="false">
+                <div class="fields">
+                    <label>Username:</label>
+                    <input type="text" id="username"></div>
+
+                    <button onclick="login()">Sign In</button>
+
+                    <img class="faded-logo" src="assets/logo.png">
+                </div>
+            </div>
         </div>
     </body>
 </html>

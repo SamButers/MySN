@@ -1,3 +1,4 @@
+const path = require('path');
 const { app, BrowserWindow, ipcMain } = require('electron');
 
 const windows = {};
@@ -15,6 +16,7 @@ function createLoginWindow() {
         titleBarStyle: 'hidden',
         frame: false,
         backgroundColor: "#FFF",
+        icon: path.join(__dirname, 'icon.ico'),
         webPreferences: {
             nodeIntegration: true, // Presents security risks, but this application will not be deployed
             contextIsolation: false // Presents security risks, but this application will not be deployed
