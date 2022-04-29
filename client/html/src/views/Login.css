@@ -1,0 +1,57 @@
+.login {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    font-size: 12px;
+}
+
+.login > .title {
+    font-weight: bold;
+    color: #143392;
+    align-self: flex-start;
+    margin-left: 4px;
+}
+
+.login > .avatar {
+    margin-top: 2em;
+    margin-bottom: 1em;
+    border: 1px solid #4d6aa2;
+    border-radius: 4px;
+}
+
+.login > .fields {
+    display: flex;
+    flex-direction: column;
+}
+
+.login > .fields > label {
+    color: #020276;
+    margin-bottom: 0.25em;
+}
+
+.login > .fields > input {
+    border: 1px solid #8296c2;
+    outline: none;
+    margin-bottom: 0.5em;
+}
+
+.login > button {
+    background: linear-gradient(90deg, #ffffff, #dbe2fc);
+    border: 1px solid #f4ac29;
+    outline: 1px solid #36495e;
+    border-radius: 2px;
+    color: #304b8c;
+    font-weight: bold;
+}
+
+.login > button:active {
+    filter: brightness(0.75);
+}
+
+.login > .faded-logo {
+    position: absolute;
+    bottom: 16px;
+    right: 6px;
+    opacity: 0.2;
+}

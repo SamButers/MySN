@@ -23,7 +23,7 @@ function createLoginWindow() {
         }
     });
 
-    loginWindow.loadFile('html/login.html');
+    loginWindow.loadFile('html/index.html');
     windows.login = loginWindow;
 }
 

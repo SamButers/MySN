@@ -1,17 +1,24 @@
+const template = `
+<div class="main">
+    <Titlebar></Titlebar>
+    <Login v-if="view == 'login'"></Login>
+</div>
+`
+
+import Titlebar from './components/Titlebar.js';
+
+import Login from './views/Login.js';
+
 export default {
-    template: `
-        <div>
-            <h1>HI, {{ username }}</h1>
-        </div>
-    `,
-    style: `
-        h1 {
-            font-size: 40px;
-        }
-    `,
+    template,
+    components: {
+        'Titlebar': Titlebar,
+
+        'Login': Login
+    },
     data() {
         return {
-            username: 'aa'
-        };
+            view: 'login'
+        }
     }
 }
