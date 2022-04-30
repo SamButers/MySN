@@ -34,6 +34,14 @@ app.whenReady().then(() => {
         app.quit();
     });
 
+    ipcMain.on('closeSubWindow', (e, arg) => {
+        const currentWindow = BrowserWindow.getFocusedWindow();
+
+
+        console.log('a')
+        currentWindow.close();
+    });
+
     ipcMain.on('maximizeWindow', (e, args) => {
         const currentWindow = BrowserWindow.getFocusedWindow();
 
@@ -46,5 +54,25 @@ app.whenReady().then(() => {
     ipcMain.on('minimizeWindow', (e, args) => {
         const currentWindow = BrowserWindow.getFocusedWindow();
         currentWindow.minimize();
+    });
+
+    ipcMain.on('joinRoom', (e, arg) => {
+        if(windows.room)
+            windows.room.close();
+
+        windows.room = new BrowserWindow({
+            width: 475,
+            height: 335,
+            titleBarStyle: 'hidden',
+            frame: false,
+            backgroundColor: "#FFF",
+            icon: path.join(__dirname, 'icon.ico'),
+            webPreferences: {
+                nodeIntegration: true, // Presents security risks, but this application will not be deployed
+                contextIsolation: false // Presents security risks, but this application will not be deployed
+            }
+        });
+
+        windows.room.loadFile('html/room.html');
     });
 });

@@ -13,6 +13,7 @@
     "start": "electron ."
   },
   "dependencies": {
-    "jquery": "^3.6.0"
+    "jquery": "^3.6.0",
+    "sanitize-html": "^2.7.0"
   }
 }
