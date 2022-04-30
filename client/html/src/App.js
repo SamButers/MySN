@@ -11,6 +11,8 @@ import Titlebar from './components/Titlebar.js';
 import Login from './views/Login.js';
 import Hub from './views/Hub.js';
 
+const { ipcRenderer } = require('electron');
+
 export default {
     template,
     components: {
@@ -23,15 +25,27 @@ export default {
         return {
             view: 'login',
             user: {
-                id: 0,
+                id: null,
                 picture: 0,
-                name: 'User'
+                name: 'User',
+                room: null
             }
         }
     },
     methods: {
-        login() {
+        login(username) {
+            this.user.name = username;
+            ipcRenderer.send('login', username);
+        },
+        loginHandler(e, userId) {
+            this.user.id = userId;
             this.view = 'hub';
         }
+    },
+    mounted() {
+        ipcRenderer.on('login', this.loginHandler);
+    },
+    unmounted() {
+        ipcRenderer.removeListener('login', this.loginHandler);
     }
 }

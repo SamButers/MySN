@@ -4,7 +4,7 @@ const template = `
     <img class="avatar" src="assets/img/avatar.png" draggable="false">
     <div class="fields">
         <label>Username:</label>
-        <input type="text" id="username">
+        <input type="text" id="username" ref="input">
     </div>
 
         <button @click="login()">Sign In</button>
@@ -18,7 +18,8 @@ export default {
 	template,
 	methods: {
 		login() {
-			this.$emit('login');
+			this.$emit('login', this.$refs.input.value);
+            console.log('shit')
 		}
 	}
 }
