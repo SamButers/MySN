@@ -36,6 +36,7 @@ typedef struct User {
 
 typedef struct Room {
     int id, userLimit;
+    char nameLength;
     char* name;
     std::map<int, User*> users;
 } Room;
@@ -54,6 +55,7 @@ int epollDescriptor;
 sem_t epollSemaphor, usersSemaphor, roomsSemaphor;
 
 char flushBuffer[FLUSH_BUFFER_SIZE];
+char roomInfoBuffer[68102];
 
 //Utility functions
 void clearDescriptor(int descriptor) {
@@ -154,6 +156,7 @@ int createRoom(char *roomName, int roomNameLength, int userLimit) {
 
     newRoom->id = getRandomRoomId();
     newRoom->userLimit = userLimit;
+    newRoom->nameLength = (char) roomNameLength - 1;
     newRoom->name = (char*) malloc(roomNameLength);
     memcpy(newRoom->name, roomName, roomNameLength);
 
@@ -255,6 +258,43 @@ void logoutUser(int descriptor) {
         free(user->name);
         delete user;
     }
+}
+
+// Can be optimized by buffering
+int getRooms() {
+    int bytes, roomCount;
+    char users;
+    map<int, Room*>::iterator it = rooms.begin();
+    Room *currentRoom;
+
+    bytes = 6; // Reserved Bytes
+    roomCount = 0;
+
+    roomInfoBuffer[0] = 0;
+    roomInfoBuffer[1] = 7;
+
+    while(it != rooms.end()) {
+        // id, userLimit, users, roomnamelength => 7 bytes
+        // roomname => ? bytes
+       currentRoom = it->second;
+
+       users = (char) currentRoom->users.size();
+
+       memcpy(roomInfoBuffer + bytes, &(currentRoom->id), 4);
+       memcpy(roomInfoBuffer + 4 + bytes, &(currentRoom->userLimit), 1);
+       roomInfoBuffer[5 + bytes] = users;
+       roomInfoBuffer[6 + bytes] = currentRoom->nameLength;
+       memcpy(roomInfoBuffer + 7 + bytes, currentRoom->name, (size_t) currentRoom->nameLength);
+
+       bytes += 7 + (int) currentRoom->nameLength;
+       roomCount++;
+
+       it++;
+    }
+
+    memcpy(roomInfoBuffer + 2, &roomCount, 4);
+
+    return bytes;
 }
 // End of user operations functions
 
@@ -484,10 +524,21 @@ void *userOperationsHandler(void *params) {
                     break;
                 }
 
-
                 case 6:
                     // Change info
                     break;
+
+                case 7: {
+                    // Get rooms
+                    int bytes = getRooms();
+
+                    roomInfoBuffer[0] = 0;
+                    roomInfoBuffer[1] = 7;
+
+                    write(events[c].data.fd, roomInfoBuffer, bytes);
+
+                    break;
+                }
 
                 default:
                     printf("Invalid function called: %d\n", (int) functionNumber);

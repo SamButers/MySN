@@ -19,7 +19,6 @@ export default {
 	methods: {
 		login() {
 			this.$emit('login', this.$refs.input.value);
-            console.log('shit')
 		}
 	}
 }
