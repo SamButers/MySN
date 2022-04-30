@@ -54,8 +54,10 @@ int epollDescriptor;
 
 sem_t epollSemaphor, usersSemaphor, roomsSemaphor;
 
+// Buffers
 char flushBuffer[FLUSH_BUFFER_SIZE];
 char roomInfoBuffer[68102];
+char roomUpdateBuffer[136];
 
 //Utility functions
 void clearDescriptor(int descriptor) {
@@ -111,15 +113,51 @@ int getRandomRoomId() {
 
     return id;
 }
+
+void sendBufferToUsers(char *buffer, int bytes, map<int, User*> &users, int updaterDescriptor) {
+    map<int, User*>::iterator it = users.begin();
+    map<int, User*>::iterator end = users.end();
+
+    int userDescriptor;
+
+    while(it != end) {
+        userDescriptor = it->first;
+
+        if(userDescriptor != updaterDescriptor)
+            write(userDescriptor, buffer, bytes);
+
+        it++;
+    }
+}
 // End of utility functions
 
 // Update functions
+
 // Sends update to all users in a room regarding
 // the list of users and to every user regarding
 // the user quantity in a room
 void roomUsersUpdate(int roomId);
-// Sends update to all users regarding the rooms
-void roomsUpdate(int roomId);
+
+void sendRoomUpdate(Room *room, int updaterDescriptor) {
+    int reservedBytes;
+    char userAmount;
+
+    reservedBytes = 2;
+    userAmount = (char) room->users.size();
+
+    roomUpdateBuffer[0] = 1;
+    roomUpdateBuffer[1] = 0;
+
+    memcpy(roomUpdateBuffer + reservedBytes, &(room->id), 4);
+    memcpy(roomUpdateBuffer + 4 + reservedBytes, &(room->userLimit), 1);
+    roomUpdateBuffer[5 + reservedBytes] = userAmount;
+    roomUpdateBuffer[6 + reservedBytes] = room->nameLength;
+    memcpy(roomUpdateBuffer + 7 + reservedBytes, room->name, (size_t) room->nameLength);
+
+    sendBufferToUsers(roomUpdateBuffer, reservedBytes + 7 + (int) room->nameLength, users, updaterDescriptor);
+}
+
+// End of update functions
 
 // User operation functions
 int loginUser(int descriptor, char *displayName, int displayNameSize) {
@@ -182,7 +220,8 @@ int joinRoom(int descriptor, int roomId) {
 
     targetUser->roomId = roomId;
     targetRoom->users[descriptor] = targetUser;
-    targetRoom->userLimit++;
+
+    sendRoomUpdate(targetRoom, descriptor);
 
     return roomId;
 }
@@ -240,6 +279,8 @@ int leaveRoom(int descriptor) {
     targetRoom->users.erase(descriptor);
     targetUser->roomId = -1;
 
+    sendRoomUpdate(targetRoom, descriptor);
+
     return 0;
 }
 
@@ -270,9 +311,6 @@ int getRooms() {
     bytes = 6; // Reserved Bytes
     roomCount = 0;
 
-    roomInfoBuffer[0] = 0;
-    roomInfoBuffer[1] = 7;
-
     while(it != rooms.end()) {
         // id, userLimit, users, roomnamelength => 7 bytes
         // roomname => ? bytes
@@ -296,6 +334,7 @@ int getRooms() {
 
     return bytes;
 }
+
 // End of user operations functions
 
 void *userOperationsHandler(void *params) {
