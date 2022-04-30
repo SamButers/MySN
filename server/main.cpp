@@ -247,12 +247,14 @@ void logoutUser(int descriptor) {
 
     sem_post(&epollSemaphor);
 
-    User *user = users[descriptor];
-    users.erase(descriptor);
+    if(users.find(descriptor) != users.end()) {
+        User *user = users[descriptor];
+        users.erase(descriptor);
 
-    leaveRoom(user->descriptor);
-    free(user->name);
-    delete user;
+        leaveRoom(user->descriptor);
+        free(user->name);
+        delete user;
+    }
 }
 // End of user operations functions
 
