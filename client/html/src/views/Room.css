@@ -52,6 +52,10 @@
     border: 1px solid #bfbeca;
     border-radius: 5px;
     box-sizing: border-box;
+    overflow-y: scroll;
+    font-size: 13px;
+    display: flex;
+    flex-direction: column;
 }
 
 .chatroom > .messages > .message {
@@ -141,4 +145,38 @@
 .chatroom > .input > .message-area > button:active {
     transform: scale(0.95);
     filter: brightness(0.8);
+}
+
+.chatroom > .users::-webkit-scrollbar {
+    width: 14px;
+}
+
+.chatroom > .users::-webkit-scrollbar-thumb {
+    background: linear-gradient(90deg, #e2eaf3, #d9e3f9);
+    border: 1px solid #6d7d9e;
+}
+
+.chatroom > .users::-webkit-scrollbar-track {
+    background: #e4eafa;
+}
+
+.chatroom > .users > .user {
+    display: flex;
+    flex-direction: row;
+    align-items: end;
+    margin-left: 16px;
+    user-select: none;
+}
+
+.chatroom > .users > .user > img {
+    width: 13px;
+    vertical-align: bottom;
+}
+
+.chatroom > .users > .user > span {
+    max-width: 200px;
+    margin-left: 4px;
+    border: 1px solid transparent;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }

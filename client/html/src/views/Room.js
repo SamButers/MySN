@@ -28,7 +28,13 @@ const template = `
             </div>
             <div class="toolbar"></div>
         </div>
-        <div class="users"></div>
+
+        <div class="users">
+            <div class="user" v-for="user in users">
+                <img src="assets/img/personicon.png">
+                <span :title="user.name">{{ user.name }}</span>
+            </div>
+        </div>
     </div>
 ` 
 const { ipcRenderer } = require('electron');
@@ -50,6 +56,12 @@ export default {
                     id: 1,
                     name: 'User1',
                     picture: 2
+                },
+
+                {
+                    id: 2,
+                    name: 'xxHeadShotxx',
+                    picture: 1
                 }
             ]
         }
