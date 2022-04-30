@@ -318,7 +318,6 @@ export default {
     },
     methods: {
         joinRoom(id) {
-            alert('To be implemented.')
             ipcRenderer.send('joinRoom', id);
         },
 

@@ -24,6 +24,8 @@ function createLoginWindow() {
     });
 
     loginWindow.loadFile('html/index.html');
+    loginWindow.winType = 'main';
+
     windows.login = loginWindow;
 }
 
@@ -37,8 +39,9 @@ app.whenReady().then(() => {
     ipcMain.on('closeSubWindow', (e, arg) => {
         const currentWindow = BrowserWindow.getFocusedWindow();
 
+        if(currentWindow.winType = 'room')
+            windows.room = null;
 
-        console.log('a')
         currentWindow.close();
     });
 
@@ -74,5 +77,6 @@ app.whenReady().then(() => {
         });
 
         windows.room.loadFile('html/room.html');
+        windows.room.winType = 'room';
     });
 });

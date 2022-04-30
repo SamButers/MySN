@@ -42,6 +42,7 @@
     border: 1px solid #bfbeca;
     border-radius: 5px;
     box-sizing: border-box;
+    overflow: hidden;
 }
 
 .chatroom > .users {
@@ -84,4 +85,60 @@
     display: block;
     margin-left: 4px;
     font-size: 13px;
+}
+
+.chatroom > .input > .toolbar {
+    background: linear-gradient(0deg, #6d7d9e, #e9f0fc, #6d7d9e);
+    height: 15%;
+    box-sizing: border-box;
+}
+
+.chatroom > .input > .toolbar:first-child {
+    border-bottom: 1px solid #bfbeca;
+}
+
+.chatroom > .input > .toolbar:last-child {
+    border-top: 1px solid #bfbeca;
+}
+
+.chatroom > .input > .message-area {
+    display: flex;
+    height: 70%;
+    box-sizing: border-box;
+    background-color: #f9fafe;
+}
+
+.chatroom > .input > .message-area > textarea {
+    width: 70%;
+    border: none;
+    outline: none;
+    background-color: transparent;
+    padding-left: 4px;
+    resize: none;
+    font-size: 13px;
+}
+
+.chatroom > .input > .message-area > textarea::-webkit-scrollbar {
+    width: 0;
+}
+
+.chatroom > .input > .message-area > button {
+    width: 20%;
+    height: 60%;
+    max-width: 200px;
+    max-height: 150px;
+    background: linear-gradient(45deg, #f6fafd, #cddaf4);
+    margin: auto;
+    padding: 10px 8px;
+    border: 1px solid #a8acb4;
+    border-radius: 3px;
+    box-shadow: 1px 1px 1px #9baebd;
+    color: #6c6f72;
+    font-weight: bold;
+    cursor: pointer;
+}
+
+.chatroom > .input > .message-area > button:active {
+    transform: scale(0.95);
+    filter: brightness(0.8);
 }
