@@ -56,12 +56,11 @@ export default {
         },
 
         createRoom() {
-            ipcRenderer.send('createRoom', null);
+            ipcRenderer.send('popupPrompt', null);
         },
 
         getRoomsHandler(e, rooms) {
             this.rooms = rooms;
-            console.log('GOT ROOMS')
         }
     },
     mounted() {

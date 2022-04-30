@@ -1,0 +1,35 @@
+.prompt {
+    display: flex;
+    flex-direction: column;
+    font-size: 13px;
+    font-weight: bold;
+    box-sizing: border-box;
+    padding: 4px;
+}
+
+.prompt > label {
+    color: #020276;
+    margin-bottom: 0.25em;
+    user-select: none;
+}
+
+.prompt > input {
+    border: 1px solid #8296c2;
+    outline: none;
+    margin-bottom: 0.5em;
+}
+
+.prompt > button {
+    background: linear-gradient(90deg, #ffffff, #dbe2fc);
+    border: 1px solid #f4ac29;
+    outline: 1px solid #36495e;
+    border-radius: 2px;
+    color: #304b8c;
+    font-weight: bold;
+    width: 75px;
+    align-self: center;
+}
+
+.prompt > button:active {
+    filter: brightness(0.75);
+}

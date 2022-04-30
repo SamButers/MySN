@@ -24,7 +24,7 @@ require('electron-reloader')(module, {
     watchRenderer: true
 });
 
-function createLoginWindow() {
+function createMainWindow() {
     const mainWindow = new BrowserWindow({
         width: 405,
         height: 660,
@@ -45,7 +45,7 @@ function createLoginWindow() {
 }
 
 app.whenReady().then(() => {
-    createLoginWindow();
+    createMainWindow();
 
     ipcMain.on('closeWindow', (e, arg) => {
         app.quit();
@@ -56,6 +56,9 @@ app.whenReady().then(() => {
 
         if(currentWindow.winType = 'room')
             windows.room = null;
+
+        else if(currentWindow.winType == 'prompt')
+            windows.prompt = null;
 
         currentWindow.close();
     });
@@ -72,6 +75,27 @@ app.whenReady().then(() => {
     ipcMain.on('minimizeWindow', (e, args) => {
         const currentWindow = BrowserWindow.getFocusedWindow();
         currentWindow.minimize();
+    });
+
+    ipcMain.on('popupPrompt', (e, args) => {
+        if(windows.prompt)
+            return;
+
+        windows.prompt = new BrowserWindow({
+            width: 250,
+            height: 175,
+            titleBarStyle: 'hidden',
+            frame: false,
+            backgroundColor: "#FFF",
+            icon: path.join(__dirname, 'icon.ico'),
+            webPreferences: {
+                nodeIntegration: true, // Presents security risks, but this application will not be deployed
+                contextIsolation: false // Presents security risks, but this application will not be deployed
+            }
+        });
+
+        windows.prompt.loadFile('html/prompt.html');
+        windows.prompt.winType = 'prompt';
     });
 
     ipcMain.on('login', (e, username) => {
