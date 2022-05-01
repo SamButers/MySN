@@ -64,9 +64,10 @@ export default {
         },
 
         roomUpdateHandler(e, update) {
-            this.rooms[update.id] = update;
-
-            console.log(this.rooms)
+            if(update.userLimit == -1)
+                delete this.rooms[update.id];
+            else
+                this.rooms[update.id] = update;
         }
     },
     mounted() {

@@ -103,6 +103,13 @@ int sendErrorResponse(int descriptor, char functionId, char *buffer) {
     }
 }
 
+void deleteRoom(Room *room) {
+    rooms.erase(room->id);
+
+    free(room->name);
+    delete room;
+}
+
 int getRandomRoomId() {
     int id;
 
@@ -154,6 +161,22 @@ void sendRoomUpdate(Room *room, int updaterDescriptor) {
     memcpy(roomUpdateBuffer + 7 + reservedBytes, room->name, (size_t) room->nameLength);
 
     sendBufferToUsers(roomUpdateBuffer, reservedBytes + 7 + (int) room->nameLength, users, updaterDescriptor);
+}
+
+void sendRoomDeletionUpdate(Room *room) {
+    int reservedBytes;
+
+    reservedBytes = 2;
+
+    roomUpdateBuffer[0] = 1;
+    roomUpdateBuffer[1] = 0;
+
+    memcpy(roomUpdateBuffer + reservedBytes, &(room->id), 4);
+    roomUpdateBuffer[4 + reservedBytes] = -1;
+
+    sendBufferToUsers(roomUpdateBuffer, reservedBytes + 5, users, -1);
+
+    deleteRoom(room);
 }
 
 // End of update functions
@@ -264,9 +287,6 @@ char sendMessage(int descriptor, char *content, int length) {
     return 0;
 }
 
-// Pending:
-//  Delete room if it reaches 0 users
-//  Send update
 int leaveRoom(int descriptor) {
     User *targetUser = users.find(descriptor) != users.end() ? users[descriptor] : NULL;
     Room *targetRoom;
@@ -275,10 +295,17 @@ int leaveRoom(int descriptor) {
         return -1;
 
     targetRoom = rooms.find(targetUser->roomId) != rooms.end() ? rooms[targetUser->roomId] : NULL;
+
+    if(targetRoom == NULL)
+        return -1;
+    
     targetRoom->users.erase(descriptor);
     targetUser->roomId = -1;
 
-    sendRoomUpdate(targetRoom, descriptor);
+    if(targetRoom->users.size() <= 0)
+        sendRoomDeletionUpdate(targetRoom);
+    else
+        sendRoomUpdate(targetRoom, -1);
 
     return 0;
 }

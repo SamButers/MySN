@@ -90,7 +90,7 @@ app.whenReady().then(() => {
     ipcMain.on('closeSubWindow', (e, arg) => {
         const currentWindow = BrowserWindow.getFocusedWindow();
 
-        if(currentWindow.winType = 'room') {
+        if(currentWindow.winType == 'room') {
             windows.room = null;
             leaveRoom();
         }
@@ -268,6 +268,17 @@ app.whenReady().then(() => {
                     case 0: {
                         const id = data.readInt32LE(2);
                         const userLimit = data.readInt8(6);
+
+                        if(userLimit == -1) {
+                            rooms[id] = null;
+
+                            windows.main.webContents.send('roomUpdate', {
+                                id,
+                                userLimit: -1
+                            });
+                            break;
+                        }
+
                         const users = data.readInt8(7);
                         const nameLength = data.readInt8(8);
                         const name = data.toString('utf8', 9, 9 + nameLength);
@@ -283,9 +294,15 @@ app.whenReady().then(() => {
                         break;
                     }
 
+                    case 1: {
+
+                        break;
+                    }
+
                     default:
                         console.log('Default case')
                 }
+
             }
         });
     });
