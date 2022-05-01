@@ -375,9 +375,9 @@ void logoutUser(int descriptor) {
 
     if(users.find(descriptor) != users.end()) {
         User *user = users[descriptor];
-        users.erase(descriptor);
-
         leaveRoom(user->descriptor);
+        
+        users.erase(descriptor);
         free(user->name);
         delete user;
     }
