@@ -1,23 +1,6 @@
 const template = `
     <div class="chatroom">
         <div class="messages" ref="messages">
-            <div class="message">
-                <div class="user-info">
-                    <img src="assets/img/userPictures/2.png" draggable="false">
-                    <span>User2</span>
-                </div>
-
-                <span class="content">Cool messageCool messageCool messageCool messageCool messageCool messageCool messageCool messageCool messageCool message</span>
-            </div>
-
-            <div class="message">
-                <div class="user-info">
-                    <img src="assets/img/userPictures/2.png" draggable="false">
-                    <span>User2</span>
-                </div>
-
-                <span class="content">Cool messageCool messageCool messageCool messageCool messageCool messageCool messageCool messageCool messageCool message</span>
-            </div>
         </div>
 
         <div class="input">
@@ -37,6 +20,7 @@ const template = `
         </div>
     </div>
 ` 
+
 const { ipcRenderer } = require('electron');
 const sanitizeHtml = require('sanitize-html');
 
@@ -44,13 +28,6 @@ export default {
     template,
     data() {
         return {
-            messages: [
-                {
-                    userId: 1,
-                    content: 'Cool message, bruv.'
-                }
-            ],
-            htmlMessages: [],
             users: {}
         }
     },
@@ -82,6 +59,14 @@ export default {
 
         getUsersHandler(e, users) {
             this.users = users;
+        },
+
+        userJoinUpdateHandler(e, user) {
+            this.users[user.id] = user;
+        },
+
+        userLeaveUpdateHandler(e, id) {
+            delete this.users[id];
         }
     },
 
@@ -92,14 +77,20 @@ export default {
     },
 
     mounted() {
-        ipcRenderer.on('messageUpdate', this.messageUpdateHandler);
         ipcRenderer.on('getUsers', this.getUsersHandler);
+
+        ipcRenderer.on('messageUpdate', this.messageUpdateHandler);
+        ipcRenderer.on('userJoinUpdate', this.userJoinUpdateHandler);
+        ipcRenderer.on('userLeaveUpdate', this.userLeaveUpdateHandler);
 
         ipcRenderer.send('getUsers', null);
     },
 
     unmounted() {
-        ipcRenderer.removeListener('messageUpdate', this.messageUpdateHandler);
         ipcRenderer.removeListener('getUsers', this.getUsersHandler);
+
+        ipcRenderer.removeListener('messageUpdate', this.messageUpdateHandler);
+        ipcRenderer.removeListener('userJoinUpdate', this.userJoinUpdateHandler);
+        ipcRenderer.removeListener('userLeaveUpdate', this.userLeaveUpdateHandler);
     }
 }

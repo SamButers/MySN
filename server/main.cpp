@@ -139,10 +139,62 @@ void sendBufferToUsers(char *buffer, int bytes, map<int, User*> &users, int upda
 
 // Update functions
 
-// Sends update to all users in a room regarding
-// the list of users and to every user regarding
-// the user quantity in a room
-void roomUsersUpdate(int roomId);
+void sendUserJoinUpdate(Room *room, User *user) {
+    map<int, User*>::iterator it = room->users.begin();
+    map<int, User*>::iterator end = room->users.end();
+
+    int userDescriptor, targetDescriptor;
+    int userNameLength = strlen(user->name);
+    char *buffer = (char*) malloc(8 + userNameLength);
+
+    buffer[0] = 1;
+    buffer[1] = 2;
+
+    userDescriptor = user->descriptor;
+
+    memcpy(buffer + 2, &(user->id), 4);
+    buffer[6] = (char) user->pictureId;
+    buffer[7] = (char) userNameLength;
+    memcpy(buffer + 8, user->name, userNameLength);
+
+    sendBufferToUsers(buffer, 8 + userNameLength, room->users, userDescriptor);
+
+    free(buffer);
+}
+
+void sendUserLeaveUpdate(Room *room, User *user) {
+    map<int, User*>::iterator it = room->users.begin();
+    map<int, User*>::iterator end = room->users.end();
+
+    int targetDescriptor;
+    char *buffer = (char*) malloc(6);
+
+    buffer[0] = 1;
+    buffer[1] = 3;
+    memcpy(buffer + 2, &(user->id), 4);
+
+    sendBufferToUsers(buffer, 6, room->users, -1);
+
+    free(buffer);
+}
+
+void sendUserUpdate(Room *room, User *user, char type) {
+    switch(type) {
+        case 0:
+            printf("LEAVE UPDATE\n");
+            sendUserLeaveUpdate(room, user);
+            break;
+        case 1:
+            printf("JOIN UPDATE\n");
+            sendUserJoinUpdate(room, user);
+            break;
+        /*case 2:
+            userInfoUpdate(room, updaterDescriptor);
+            break;*/
+        default:
+            return;
+    }
+}
 
 void sendRoomUpdate(Room *room, int updaterDescriptor) {
     int reservedBytes;
@@ -243,6 +295,7 @@ int joinRoom(int descriptor, int roomId) {
     targetUser->roomId = roomId;
     targetRoom->users[descriptor] = targetUser;
 
+    sendUserUpdate(targetRoom, targetUser, 1);
     sendRoomUpdate(targetRoom, descriptor);
 
     return roomId;
@@ -305,8 +358,10 @@ int leaveRoom(int descriptor) {
 
     if(targetRoom->users.size() <= 0)
         sendRoomDeletionUpdate(targetRoom);
-    else
+    else {
+        sendUserUpdate(targetRoom, targetUser, 0);
         sendRoomUpdate(targetRoom, -1);
+    }
 
     return 0;
 }

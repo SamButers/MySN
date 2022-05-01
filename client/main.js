@@ -254,7 +254,6 @@ app.whenReady().then(() => {
                             users[id] = {
                                 id,
                                 pictureId,
-                                nameLength,
                                 name
                             };
 
@@ -277,7 +276,7 @@ app.whenReady().then(() => {
                         const userLimit = data.readInt8(6);
 
                         if(userLimit == -1) {
-                            rooms[id] = null;
+                            delete rooms[id];
 
                             windows.main.webContents.send('roomUpdate', {
                                 id,
@@ -310,6 +309,31 @@ app.whenReady().then(() => {
                             userId,
                             content: messageContent
                         });
+                        break;
+                    }
+
+                    case 2: {
+                        const id = data.readInt32LE(2);
+                        const pictureId = data.readInt8(6);
+                        const nameLength = data.readInt8(7);
+                        const name = data.toString('utf8', 8, 8 + nameLength);
+
+                        users[id] = {
+                            id,
+                            pictureId,
+                            name
+                        };
+
+                        windows.room.webContents.send('userJoinUpdate', users[id]);
+                        break;
+                    }
+
+                    case 3: {
+                        const id = data.readInt32LE(2);
+
+                        delete user[id];
+
+                        windows.room.webContents.send('userLeaveUpdate', id);
                         break;
                     }
 
