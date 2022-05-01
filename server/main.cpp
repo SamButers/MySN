@@ -57,6 +57,7 @@ sem_t epollSemaphor, usersSemaphor, roomsSemaphor;
 // Buffers
 char flushBuffer[FLUSH_BUFFER_SIZE];
 char roomInfoBuffer[68102];
+char userInfoBuffer[16897];
 char roomUpdateBuffer[136];
 
 //Utility functions
@@ -103,10 +104,10 @@ int sendErrorResponse(int descriptor, char functionId, char *buffer) {
 }
 
 int getRandomRoomId() {
-    int id, componentOne, componentTwo;
+    int id;
 
     do {
-        id = rand();
+        id = abs(rand());
     } while(rooms.find(id) != rooms.end());
 
     return id;
@@ -333,6 +334,46 @@ int getRooms() {
     return bytes;
 }
 
+int getUsers(int descriptor) {
+    User *targetUser = users.find(descriptor) != users.end() ? users[descriptor] : NULL;
+    Room *targetRoom;
+
+    if(targetUser == NULL)
+        return -1;
+
+    targetRoom = rooms.find(targetUser->roomId) != rooms.end() ? rooms[targetUser->roomId] : NULL;
+
+    if(targetRoom == NULL)
+        return -1;
+
+    int bytes, nameLength;
+    char userCount;
+    User *currentUser;
+
+    map<int, User*>::iterator it = targetRoom->users.begin();
+    map<int, User*>::iterator end = targetRoom->users.end();
+
+    bytes = 3; // Reserved Bytes
+    userCount = (char) targetRoom->users.size();
+
+    while(it != end) {
+       currentUser = it->second;
+       nameLength = strlen(currentUser->name);
+
+       memcpy(userInfoBuffer + bytes, &(currentUser->id), 4);
+       userInfoBuffer[4 + bytes] = (char) currentUser->pictureId;
+       userInfoBuffer[5 + bytes] = (char) nameLength;
+       memcpy(userInfoBuffer + 6 + bytes, currentUser->name, nameLength);
+
+       bytes += 6 + nameLength;
+       it++;
+    }
+
+    userInfoBuffer[2] = userCount;
+
+    return bytes;
+}
+
 // End of user operations functions
 
 void *userOperationsHandler(void *params) {
@@ -383,7 +424,7 @@ void *userOperationsHandler(void *params) {
 
                     username = (char*) malloc(usernameLength + 1);
 
-                    bytesRead = read(events[c].data.fd, username, (int) usernameLength);
+                    bytesRead = read(events[c].data.fd, username, usernameLength);
                     if(bytesRead != usernameLength) {
                         printf("Error occurred while reading username.\n");
                         
@@ -581,6 +622,19 @@ void *userOperationsHandler(void *params) {
                     roomInfoBuffer[1] = 7;
 
                     write(events[c].data.fd, roomInfoBuffer, bytes);
+
+                    break;
+                }
+
+                case 8: {
+                    // Get users
+                    printf("Get users\n");
+                    int bytes = getUsers(events[c].data.fd);
+
+                    userInfoBuffer[0] = 0;
+                    userInfoBuffer[1] = 8;
+
+                    write(events[c].data.fd, userInfoBuffer, bytes);
 
                     break;
                 }

@@ -77,5 +77,6 @@ export default {
     },
     unmounted() {
         ipcRenderer.removeListener('getRooms', this.getRoomsHandler);
+        ipcRenderer.removeListener('roomUpdate', this.roomUpdateHandler);
     }
 }

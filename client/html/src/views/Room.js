@@ -51,48 +51,50 @@ export default {
                 }
             ],
             htmlMessages: [],
-            users: [
-                {
-                    id: 1,
-                    name: 'User1',
-                    picture: 2
-                },
-
-                {
-                    id: 2,
-                    name: 'xxHeadShotxx',
-                    picture: 1
-                }
-            ]
+            users: {}
         }
     },
+
     methods: {
         updateMessages(messages) {
             for(let message in messages) {
 
             }
         },
+
         messagesUpdateHandler(e , messages) {
             this.updateMessages(messages);
         },
+
         sendMessage() {
             const messageContent = this.$refs.messageInput.value;
 
             if(messageContent.length > 0)
                 alert(messageContent);
+        },
+
+        getUsersHandler(e, users) {
+            this.users = users;
         }
     },
+
     computed: {
         sendDisabled: function() {
             return 1;
         }
     },
+
     mounted() {
         ipcRenderer.on('messagesUpdate', this.messagesUpdateHandler);
+        ipcRenderer.on('getUsers', this.getUsersHandler);
+
+        ipcRenderer.send('getUsers', null);
 
         this.$refs.messages.scrollTop = this.$refs.messages.scrollHeight;
     },
+
     unmounted() {
         ipcRenderer.removeListener('messagesUpdate', this.messagesUpdateHandler);
+        ipcRenderer.removeListener('getUsers', this.getUsersHandler);
     }
 }

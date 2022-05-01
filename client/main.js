@@ -18,6 +18,7 @@ let user = {
 
 let pendingRoom = {};
 let rooms = {};
+let users = {};
 
 // Remove for production
 require('electron-reloader')(module, {
@@ -141,7 +142,7 @@ app.whenReady().then(() => {
             try {
                 buffer.writeInt8(0);
                 buffer.writeInt8(username.length, 1);
-                buffer.write(username, 2);
+                buffer.write(username, 2, username.length);
 
                 user.name = username;
 
@@ -228,6 +229,35 @@ app.whenReady().then(() => {
                         break;
                     }
 
+                    case 8: {
+                        let bytes = 3;
+
+                        let id, pictureId, nameLength, name;
+
+                        const userCount = data.readInt8(2);
+
+                        users = {};
+
+                        for(let c = 0; c < userCount; c += 1) {
+                            id = data.readInt32LE(bytes);
+                            pictureId = data.readInt8(bytes + 4);
+                            nameLength = data.readInt8(bytes + 5);
+                            name = data.toString('utf8', bytes + 6, bytes + 6 + nameLength);
+
+                            users[id] = {
+                                id,
+                                pictureId,
+                                nameLength,
+                                name
+                            };
+
+                            bytes += 6 + nameLength;
+                        }
+
+                        windows.room.webContents.send('getUsers', users);
+                        break;
+                    }
+
                     default:
                         console.log('Default case')
                 }
@@ -239,6 +269,17 @@ app.whenReady().then(() => {
         const buffer = Buffer.alloc(1);
         try {
             buffer.writeInt8(7);
+
+            client.write(buffer);
+        } catch(e) {
+            console.log(e);
+        }
+    });
+
+    ipcMain.on('getUsers', (e, _) => {
+        const buffer = Buffer.alloc(1);
+        try {
+            buffer.writeInt8(8);
 
             client.write(buffer);
         } catch(e) {
