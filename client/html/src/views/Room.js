@@ -56,21 +56,28 @@ export default {
     },
 
     methods: {
-        updateMessages(messages) {
-            for(let message in messages) {
+        appendMessage(message) {
+            this.$refs.messages.innerHTML += `
+                <div class="message">
+                    <div class="user-info">
+                        <img src="assets/img/userPictures/${this.users[message.userId].pictureId}.png" draggable="false">
+                        <span>${sanitizeHtml(this.users[message.userId].name)}</span>
+                    </div>
 
-            }
+                    <span class="content">${sanitizeHtml(message.content)}</span>
+                </div>
+            `;
         },
 
-        messagesUpdateHandler(e , messages) {
-            this.updateMessages(messages);
+        messageUpdateHandler(e , message) {
+            this.appendMessage(message);
+            this.$refs.messages.scrollTop = this.$refs.messages.scrollHeight;
         },
 
         sendMessage() {
             const messageContent = this.$refs.messageInput.value;
 
-            if(messageContent.length > 0)
-                alert(messageContent);
+            ipcRenderer.send('sendMessage', messageContent);
         },
 
         getUsersHandler(e, users) {
@@ -80,21 +87,19 @@ export default {
 
     computed: {
         sendDisabled: function() {
-            return 1;
+            return 0;
         }
     },
 
     mounted() {
-        ipcRenderer.on('messagesUpdate', this.messagesUpdateHandler);
+        ipcRenderer.on('messageUpdate', this.messageUpdateHandler);
         ipcRenderer.on('getUsers', this.getUsersHandler);
 
         ipcRenderer.send('getUsers', null);
-
-        this.$refs.messages.scrollTop = this.$refs.messages.scrollHeight;
     },
 
     unmounted() {
-        ipcRenderer.removeListener('messagesUpdate', this.messagesUpdateHandler);
+        ipcRenderer.removeListener('messageUpdate', this.messageUpdateHandler);
         ipcRenderer.removeListener('getUsers', this.getUsersHandler);
     }
 }

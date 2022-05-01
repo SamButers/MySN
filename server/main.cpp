@@ -267,18 +267,19 @@ char sendMessage(int descriptor, char *content, int length) {
     map<int, User*>::iterator end = targetRoom->users.end();
 
     int userDescriptor;
-    char *buffer = (char*) malloc(4 + length);
+    char *buffer = (char*) malloc(8 + length);
 
     buffer[0] = 1;
-    buffer[1] = 0;
-    memcpy(buffer + 2, &length, 2);
-    memcpy(buffer + 4, content, length);
+    buffer[1] = 1;
+    memcpy(buffer + 2, &(targetUser->id), 4);
+    memcpy(buffer + 6, &length, 2);
+    memcpy(buffer + 8, content, length);
 
     while(it != end) {
         userDescriptor = it->first;
 
         if(userDescriptor != descriptor)
-            write(userDescriptor, buffer, length + 4);
+            write(userDescriptor, buffer, length + 8);
 
         it++;
     }
@@ -298,7 +299,7 @@ int leaveRoom(int descriptor) {
 
     if(targetRoom == NULL)
         return -1;
-    
+
     targetRoom->users.erase(descriptor);
     targetUser->roomId = -1;
 
@@ -497,6 +498,8 @@ void *userOperationsHandler(void *params) {
                     int roomNameLength, userLimit, roomId;
                     char *roomName;
 
+                    roomNameLength = userLimit = 0;
+
                     bytesRead = read(events[c].data.fd, &roomNameLength, 1);
                     if(bytesRead != 1) {
                         printf("Error occurred while reading room name length.\n");
@@ -583,7 +586,7 @@ void *userOperationsHandler(void *params) {
                     // Send message
                     printf("Send message.\n");
 
-                    int messageLength;
+                    int messageLength = 0;
                     char status;
                     char *messageContent;
 
@@ -598,9 +601,11 @@ void *userOperationsHandler(void *params) {
 
                     messageContent = (char*) malloc(messageLength);
 
-                    bytesRead = read(events[c].data.fd, &messageContent, messageLength);
+                    bytesRead = read(events[c].data.fd, messageContent, messageLength);
                     if(bytesRead != messageLength) {
                         printf("Error occurred while reading message content.\n");
+                        printf("%d\n", bytesRead);
+                        printf("%d\n", messageLength);
                         
                         clearDescriptor(events[c].data.fd);
                         sendErrorResponse(events[c].data.fd, 4, responseBuffer);

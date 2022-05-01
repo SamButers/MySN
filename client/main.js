@@ -295,7 +295,17 @@ app.whenReady().then(() => {
                     }
 
                     case 1: {
+                        const userId = data.readInt32LE(2);
+                        const messageLength = data.readInt16LE(6);
+                        const messageContent = data.toString('utf8', 8, 8 + messageLength);
 
+                        console.log('message')
+                        console.log(messageContent)
+
+                        windows.room.webContents.send('messageUpdate', {
+                            userId,
+                            content: messageContent
+                        });
                         break;
                     }
 
@@ -365,5 +375,20 @@ app.whenReady().then(() => {
         }
 
         joinRoom();
+    });
+
+    ipcMain.on('sendMessage', (e, messageContent) => {
+        const messageLength = messageContent.length;
+
+        const buffer = Buffer.alloc(3 + messageLength);
+        try {
+            buffer.writeInt8(4);
+            buffer.writeInt16LE(messageLength, 1);
+            buffer.write(messageContent, 3, messageLength);
+
+            client.write(buffer);
+        } catch(e) {
+            console.log(e);
+        }
     });
 });
