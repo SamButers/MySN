@@ -262,6 +262,31 @@ app.whenReady().then(() => {
                         console.log('Default case')
                 }
             }
+
+            else {
+                switch(functionId) {
+                    case 0: {
+                        const id = data.readInt32LE(2);
+                        const userLimit = data.readInt8(6);
+                        const users = data.readInt8(7);
+                        const nameLength = data.readInt8(8);
+                        const name = data.toString('utf8', 9, 9 + nameLength);
+
+                        rooms[id] = {
+                            id,
+                            userLimit,
+                            users,
+                            name
+                        };
+
+                        windows.main.webContents.send('roomUpdate', rooms[id]);
+                        break;
+                    }
+
+                    default:
+                        console.log('Default case')
+                }
+            }
         });
     });
 
