@@ -68,6 +68,17 @@ function joinRoom(roomId) {
     windows.room.winType = 'room';
 }
 
+function leaveRoom() {
+    const buffer = Buffer.alloc(1);
+    try {
+        buffer.writeInt8(5);
+
+        client.write(buffer);
+    } catch(e) {
+        console.log(e);
+    }
+}
+
 app.whenReady().then(() => {
     createMainWindow();
 
@@ -78,8 +89,10 @@ app.whenReady().then(() => {
     ipcMain.on('closeSubWindow', (e, arg) => {
         const currentWindow = BrowserWindow.getFocusedWindow();
 
-        if(currentWindow.winType = 'room')
+        if(currentWindow.winType = 'room') {
             windows.room = null;
+            leaveRoom();
+        }
 
         else if(currentWindow.winType == 'prompt')
             windows.prompt = null;
@@ -142,30 +155,52 @@ app.whenReady().then(() => {
             const dataType = data.readInt8();
             const functionId = data.readInt8(1);
 
-            // Response
             if(dataType == 0) {
                 switch(functionId) {
-                    case 0:
+                    case 0: {
                         const userId = data.readInt32LE(2);
 
                         user.id = userId;
                         windows.main.webContents.send('login', userId);
                         break;
+                    }
 
-                    case 2:
+                    case 2: {
                         const roomId = data.readInt32LE(2);
-
-                        console.log(roomId)
 
                         pendingRoom.id = roomId;
                         pendingRoom.users += 1;
 
                         windows.main.webContents.send('roomUpdate', pendingRoom);
 
+                        windows.prompt.close();
+                        windows.prompt = null;
+
                         joinRoom(roomId);
                         break;
+                    }
 
-                    case 7:
+                    case 3: {
+                        const roomId = data.readInt32LE(2);
+
+                        rooms[roomId].users += 1;
+
+                        windows.main.webContents.send('roomUpdate', rooms[roomId]);
+
+                        joinRoom(roomId);
+                        break;
+                    }
+
+                    case 5: {
+                        const roomId = data.readInt32LE(2);
+
+                        if(!roomId)
+                            user.room = null;
+
+                        break;
+                    }
+
+                    case 7: {
                         let bytes = 6;
 
                         let id, userLimit, users, nameLength, name;
@@ -189,15 +224,9 @@ app.whenReady().then(() => {
                             bytes += 7 + nameLength;
                         }
 
-                        /*rooms.push({
-                            id: 666,
-                            userLimit: 24,
-                            users: 0,
-                            name: 'Test room (Not joinable)'
-                        });*/
-
                         windows.main.webContents.send('getRooms', rooms);
                         break;
+                    }
 
                     default:
                         console.log('Default case')
@@ -241,25 +270,17 @@ app.whenReady().then(() => {
         }
     });
 
-    ipcMain.on('joinRoom', (e, arg) => {
+    ipcMain.on('joinRoom', (e, roomId) => {
+        const buffer = Buffer.alloc(5);
+        try {
+            buffer.writeInt8(3);
+            buffer.writeInt32LE(roomId, 1);
+
+            client.write(buffer);
+        } catch(e) {
+            console.log(e);
+        }
+
         joinRoom();
-        if(windows.room)
-            windows.room.close();
-
-        windows.room = new BrowserWindow({
-            width: 475,
-            height: 335,
-            titleBarStyle: 'hidden',
-            frame: false,
-            backgroundColor: "#FFF",
-            icon: path.join(__dirname, 'icon.ico'),
-            webPreferences: {
-                nodeIntegration: true, // Presents security risks, but this application will not be deployed
-                contextIsolation: false // Presents security risks, but this application will not be deployed
-            }
-        });
-
-        windows.room.loadFile('html/room.html');
-        windows.room.winType = 'room';
     });
 });

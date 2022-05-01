@@ -4,7 +4,7 @@ const template = `
     <img class="avatar" src="assets/img/avatar.png" draggable="false">
     <div class="fields">
         <label>Username:</label>
-        <input type="text" id="username" ref="input">
+        <input type="text" id="username" @keydown.enter="login()" ref="input">
     </div>
 
         <button @click="login()">Sign In</button>

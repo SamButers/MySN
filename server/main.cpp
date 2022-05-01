@@ -556,6 +556,7 @@ void *userOperationsHandler(void *params) {
 
                 case 5: {
                     // Leave room
+                    printf("Leave room\n");
                     int roomId = leaveRoom(events[c].data.fd);
 
                     responseBuffer[0] = 0;
@@ -573,6 +574,7 @@ void *userOperationsHandler(void *params) {
 
                 case 7: {
                     // Get rooms
+                    printf("Get rooms\n");
                     int bytes = getRooms();
 
                     roomInfoBuffer[0] = 0;
