@@ -80,6 +80,13 @@ function leaveRoom() {
     }
 }
 
+function loopbackMessage(content) {
+    windows.room.webContents.send('messageUpdate', {
+        userId: user.id,
+        content
+    });
+}
+
 app.whenReady().then(() => {
     createMainWindow();
 
@@ -299,9 +306,6 @@ app.whenReady().then(() => {
                         const messageLength = data.readInt16LE(6);
                         const messageContent = data.toString('utf8', 8, 8 + messageLength);
 
-                        console.log('message')
-                        console.log(messageContent)
-
                         windows.room.webContents.send('messageUpdate', {
                             userId,
                             content: messageContent
@@ -387,6 +391,8 @@ app.whenReady().then(() => {
             buffer.write(messageContent, 3, messageLength);
 
             client.write(buffer);
+
+            loopbackMessage(messageContent);
         } catch(e) {
             console.log(e);
         }
