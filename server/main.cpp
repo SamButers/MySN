@@ -61,14 +61,14 @@ char roomUpdateBuffer[136];
 
 //Utility functions
 void clearDescriptor(int descriptor) {
-    int readBytes = read(descriptor, &flushBuffer, FLUSH_BUFFER_SIZE);
+    printf("Reading...\n");
+    int readBytes = recv(descriptor, &flushBuffer, FLUSH_BUFFER_SIZE, MSG_DONTWAIT);
+    printf("READ IT\n");
 
     if(readBytes < 0)
         printf("Error on flushing.\n");
-    else {
+    else
         printf("Flushed bytes: %d\n", readBytes);
-        getchar();
-    }
 }
 
 int sendErrorResponse(int descriptor, char functionId, char *buffer) {
@@ -190,7 +190,7 @@ int loginUser(int descriptor, char *displayName, int displayNameSize) {
 // Pending:
 //  Send update
 int createRoom(char *roomName, int roomNameLength, int userLimit) {
-    Room *newRoom;
+    Room *newRoom = new Room();
 
     newRoom->id = getRandomRoomId();
     newRoom->userLimit = userLimit;
@@ -380,6 +380,7 @@ void *userOperationsHandler(void *params) {
                         
                         clearDescriptor(events[c].data.fd);
                         sendErrorResponse(events[c].data.fd, 0, responseBuffer);
+                        break;
                     }
 
                     username = (char*) malloc(usernameLength + 1);
@@ -390,6 +391,7 @@ void *userOperationsHandler(void *params) {
                         
                         clearDescriptor(events[c].data.fd);
                         sendErrorResponse(events[c].data.fd, 0, responseBuffer);
+                        break;
                     }
 
                     username[usernameLength] = '\0';
@@ -426,10 +428,8 @@ void *userOperationsHandler(void *params) {
                     // Create room
                     printf("Create room\n");
 
-                    int roomNameLength, userLimit;
+                    int roomNameLength, userLimit, roomId;
                     char *roomName;
-
-                    int roomId;
 
                     bytesRead = read(events[c].data.fd, &roomNameLength, 1);
                     if(bytesRead != 1) {
@@ -437,16 +437,18 @@ void *userOperationsHandler(void *params) {
                         
                         clearDescriptor(events[c].data.fd);
                         sendErrorResponse(events[c].data.fd, 2, responseBuffer);
+                        break;
                     }
 
                     roomName = (char*) malloc(roomNameLength + 1);
 
-                    bytesRead = read(events[c].data.fd, &roomName, roomNameLength);
+                    bytesRead = read(events[c].data.fd, roomName, roomNameLength);
                     if(bytesRead != roomNameLength) {
                         printf("Error occurred while reading room name.\n");
                         
                         clearDescriptor(events[c].data.fd);
                         sendErrorResponse(events[c].data.fd, 2, responseBuffer);
+                        break;
                     }
 
                     roomName[roomNameLength] = '\0';
@@ -457,6 +459,7 @@ void *userOperationsHandler(void *params) {
                         
                         clearDescriptor(events[c].data.fd);
                         sendErrorResponse(events[c].data.fd, 2, responseBuffer);
+                        break;
                     }
 
                     if(userLimit < 2) {
@@ -496,6 +499,7 @@ void *userOperationsHandler(void *params) {
                         
                         clearDescriptor(events[c].data.fd);
                         sendErrorResponse(events[c].data.fd, 3, responseBuffer);
+                        break;
                     }
 
                     roomId = joinRoom(events[c].data.fd, roomId);
@@ -523,6 +527,7 @@ void *userOperationsHandler(void *params) {
                         
                         clearDescriptor(events[c].data.fd);
                         sendErrorResponse(events[c].data.fd, 4, responseBuffer);
+                        break;
                     }
 
                     messageContent = (char*) malloc(messageLength);
@@ -533,6 +538,7 @@ void *userOperationsHandler(void *params) {
                         
                         clearDescriptor(events[c].data.fd);
                         sendErrorResponse(events[c].data.fd, 4, responseBuffer);
+                        break;
                     }
 
                     //messageContent[messageLength] = '\0';
