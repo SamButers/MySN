@@ -31,7 +31,7 @@ export default {
 	template,
     data() {
         return {
-            rooms: []
+            rooms: {}
         }
     },
     props: {
@@ -61,10 +61,18 @@ export default {
 
         getRoomsHandler(e, rooms) {
             this.rooms = rooms;
+        },
+
+        roomUpdateHandler(e, update) {
+            this.rooms[update.id] = update;
+
+            console.log(this.rooms)
         }
     },
     mounted() {
         ipcRenderer.on('getRooms', this.getRoomsHandler);
+        ipcRenderer.on('roomUpdate', this.roomUpdateHandler);
+
         ipcRenderer.send('getRooms', null);
     },
     unmounted() {

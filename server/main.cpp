@@ -106,9 +106,7 @@ int getRandomRoomId() {
     int id, componentOne, componentTwo;
 
     do {
-        componentOne = rand();
-        componentTwo = rand();
-        id = componentOne | componentTwo << 15;
+        id = rand();
     } while(rooms.find(id) != rooms.end());
 
     return id;

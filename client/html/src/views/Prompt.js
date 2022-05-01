@@ -6,7 +6,7 @@ const template = `
         <label>User limit (127 maximum)</label>
         <input v-model="userLimit" type="number" min="2" max="127">
 
-        <button>Create</button>
+        <button @click="createRoom">Create</button>
     </div>
 ` 
 const { ipcRenderer } = require('electron');
@@ -21,7 +21,8 @@ export default {
     },
     methods: {
         createRoom() {
-            ipcRenderer.send('createRoom', [roomName, userLimit]);
+            console.log('a')
+            ipcRenderer.send('createRoom', [this.roomName, this.userLimit]);
         }
     }
 }

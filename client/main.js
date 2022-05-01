@@ -16,7 +16,8 @@ let user = {
     room: null
 };
 
-let rooms = [];
+let pendingRoom = {};
+let rooms = {};
 
 // Remove for production
 require('electron-reloader')(module, {
@@ -42,6 +43,29 @@ function createMainWindow() {
     mainWindow.winType = 'main';
 
     windows.main = mainWindow;
+}
+
+function joinRoom(roomId) {
+    if(windows.room)
+        windows.room.close();
+
+    user.room = roomId;
+
+    windows.room = new BrowserWindow({
+        width: 475,
+        height: 335,
+        titleBarStyle: 'hidden',
+        frame: false,
+        backgroundColor: "#FFF",
+        icon: path.join(__dirname, 'icon.ico'),
+        webPreferences: {
+            nodeIntegration: true, // Presents security risks, but this application will not be deployed
+            contextIsolation: false // Presents security risks, but this application will not be deployed
+        }
+    });
+
+    windows.room.loadFile('html/room.html');
+    windows.room.winType = 'room';
 }
 
 app.whenReady().then(() => {
@@ -128,6 +152,19 @@ app.whenReady().then(() => {
                         windows.main.webContents.send('login', userId);
                         break;
 
+                    case 2:
+                        const roomId = data.readInt32LE(2);
+
+                        console.log(roomId)
+
+                        pendingRoom.id = roomId;
+                        pendingRoom.users += 1;
+
+                        windows.main.webContents.send('roomUpdate', pendingRoom);
+
+                        joinRoom(roomId);
+                        break;
+
                     case 7:
                         let bytes = 6;
 
@@ -142,20 +179,22 @@ app.whenReady().then(() => {
                             nameLength = data.readInt8(bytes + 6);
                             name = data.toString('utf8', bytes + 7, bytes + 7 + nameLength);
 
-                            rooms.push({
+                            rooms[id] = {
                                 id,
                                 userLimit,
                                 users,
                                 name
-                            });
+                            };
+
+                            bytes += 7 + nameLength;
                         }
 
-                        rooms.push({
+                        /*rooms.push({
                             id: 666,
                             userLimit: 24,
                             users: 0,
                             name: 'Test room (Not joinable)'
-                        });
+                        });*/
 
                         windows.main.webContents.send('getRooms', rooms);
                         break;
@@ -178,7 +217,32 @@ app.whenReady().then(() => {
         }
     });
 
+    ipcMain.on('createRoom', (e, roomInfo) => {
+        const roomName = roomInfo[0];
+        const userLimit = roomInfo[1];
+
+        const buffer = Buffer.alloc(roomName.length + 3);
+        try {
+            buffer.writeInt8(2);
+            buffer.writeInt8(roomName.length, 1);
+            buffer.write(roomName, 2, roomName.length);
+            buffer.writeInt8(userLimit, roomName.length + 2);
+
+            client.write(buffer);
+
+            pendingRoom = {
+                name: roomName,
+                userLimit,
+                id: null,
+                users: 0
+            };
+        } catch(e) {
+            console.log(e);
+        }
+    });
+
     ipcMain.on('joinRoom', (e, arg) => {
+        joinRoom();
         if(windows.room)
             windows.room.close();
 
