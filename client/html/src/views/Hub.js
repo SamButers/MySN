@@ -3,7 +3,7 @@ const template = `
     <div class="user-section">
         <span class="title"><img src="assets/img/mysn.png">Messenger</span>
         <div class="user-info">
-            <img :src="userPicturePath">
+            <img :src="userPicturePath" @click="openPictureWindow()">
             <span>{{ username }}</span>
         </div>
     </div>
@@ -68,6 +68,10 @@ export default {
                 delete this.rooms[update.id];
             else
                 this.rooms[update.id] = update;
+        },
+
+        openPictureWindow() {
+            ipcRenderer.send('openPictureWindow', null);
         }
     },
     mounted() {

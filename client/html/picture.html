@@ -1,0 +1,32 @@
+<html>
+    <head>
+        <meta charset="UTF-8">
+
+        <script>if (typeof module === 'object') {window.module = module; module = undefined;}</script>
+
+        <script type="importmap">
+            {
+                "imports": {
+                    "vue": "./src/vue.esm-browser.js"
+                }
+            }
+        </script>
+        <script type="module" src="src/pictureMain.js"></script>
+
+        <script>if (window.module) module = window.module;</script>
+
+        <link rel="stylesheet" href="src/css-reset.css">
+        <link rel="stylesheet" href="src/App.css">
+
+        <link rel="stylesheet" href="src/components/Titlebar.css">
+
+        <link rel="stylesheet" href="src/views/Picture.css">
+
+        <title>MySN</title>  
+    </head>
+
+    <body>
+        <div id="main">
+        </div>
+    </body>
+</html>

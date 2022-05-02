@@ -85,6 +85,7 @@ int sendErrorResponse(int descriptor, char functionId, char *buffer) {
         case -1:
             return write(descriptor, buffer, 2) != 2;
 
+        case 6:
         case 3:
         case 2:
         case 0:
@@ -130,7 +131,7 @@ void sendBufferToUsers(char *buffer, int bytes, map<int, User*> &users, int upda
         userDescriptor = it->first;
 
         if(userDescriptor != updaterDescriptor)
-            write(userDescriptor, buffer, bytes);
+            send(userDescriptor, buffer, bytes);
 
         it++;
     }
@@ -140,10 +141,7 @@ void sendBufferToUsers(char *buffer, int bytes, map<int, User*> &users, int upda
 // Update functions
 
 void sendUserJoinUpdate(Room *room, User *user) {
-    map<int, User*>::iterator it = room->users.begin();
-    map<int, User*>::iterator end = room->users.end();
-
-    int userDescriptor, targetDescriptor;
+    int userDescriptor;
     int userNameLength = strlen(user->name);
     char *buffer = (char*) malloc(8 + userNameLength);
 
@@ -163,10 +161,6 @@ void sendUserJoinUpdate(Room *room, User *user) {
 }
 
 void sendUserLeaveUpdate(Room *room, User *user) {
-    map<int, User*>::iterator it = room->users.begin();
-    map<int, User*>::iterator end = room->users.end();
-
-    int targetDescriptor;
     char *buffer = (char*) malloc(6);
 
     buffer[0] = 1;
@@ -174,6 +168,22 @@ void sendUserLeaveUpdate(Room *room, User *user) {
     memcpy(buffer + 2, &(user->id), 4);
 
     sendBufferToUsers(buffer, 6, room->users, -1);
+
+    free(buffer);
+}
+
+void userInfoUpdate(Room *room, User *user) {
+    int userDescriptor;
+    char *buffer = (char*) malloc(7);
+
+    buffer[0] = 1;
+    buffer[1] = 4;
+    memcpy(buffer + 2, &(user->id), 4);
+    buffer[6] = (char) user->pictureId;
+
+    userDescriptor = user->descriptor;
+
+    sendBufferToUsers(buffer, 7, room->users, userDescriptor);
 
     free(buffer);
 }
@@ -188,15 +198,17 @@ void sendUserUpdate(Room *room, User *user, char type) {
             printf("JOIN UPDATE\n");
             sendUserJoinUpdate(room, user);
             break;
-        /*case 2:
-            userInfoUpdate(room, updaterDescriptor);
-            break;*/
+        case 2:
+            printf("INFO UPDATE");
+            userInfoUpdate(room, user);
+            break;
         default:
             return;
     }
 }
 
 void sendRoomUpdate(Room *room, int updaterDescriptor) {
+    printf("ROOMS UUPDATE\n");
     int reservedBytes;
     char userAmount;
 
@@ -341,6 +353,23 @@ char sendMessage(int descriptor, char *content, int length) {
     return 0;
 }
 
+int changeInfo(int descriptor, int pictureId) {
+    User *targetUser = users.find(descriptor) != users.end() ? users[descriptor] : NULL;
+    Room *targetRoom;
+
+    if(targetUser == NULL)
+        return -1;
+
+    targetRoom = rooms.find(targetUser->roomId) != rooms.end() ? rooms[targetUser->roomId] : NULL;
+
+    targetUser->pictureId = pictureId;
+
+    if(targetRoom != NULL)
+        sendUserUpdate(targetRoom, targetUser, 2);
+
+    return pictureId;
+}
+
 int leaveRoom(int descriptor) {
     User *targetUser = users.find(descriptor) != users.end() ? users[descriptor] : NULL;
     Room *targetRoom;
@@ -376,7 +405,7 @@ void logoutUser(int descriptor) {
     if(users.find(descriptor) != users.end()) {
         User *user = users[descriptor];
         leaveRoom(user->descriptor);
-        
+
         users.erase(descriptor);
         free(user->name);
         delete user;
@@ -696,9 +725,30 @@ void *userOperationsHandler(void *params) {
                     break;
                 }
 
-                case 6:
+                case 6: {
                     // Change info
+                    printf("Change info.\n");
+                    int pictureId = 0;
+
+                    bytesRead = read(events[c].data.fd, &pictureId, 1);
+                    if(bytesRead != 1) {
+                        printf("Error occurred while reading picture id.\n");
+                        
+                        clearDescriptor(events[c].data.fd);
+                        sendErrorResponse(events[c].data.fd, 6, responseBuffer);
+                        break;
+                    }
+
+                    pictureId = changeInfo(events[c].data.fd, pictureId);
+
+                    responseBuffer[0] = 0;
+                    responseBuffer[1] = 6;
+                    responseBuffer[2] = (char) pictureId;
+
+                    write(events[c].data.fd, responseBuffer, 3);
+
                     break;
+                }
 
                 case 7: {
                     // Get rooms

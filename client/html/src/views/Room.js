@@ -71,6 +71,10 @@ export default {
 
         errorHandler(e, err) {
             alert(err);
+        },
+
+        userInfoUpdateHandler(e, userInfo) {
+            this.users[userInfo.id].pictureId = userInfo.pictureId;
         }
     },
 
@@ -87,6 +91,7 @@ export default {
         ipcRenderer.on('messageUpdate', this.messageUpdateHandler);
         ipcRenderer.on('userJoinUpdate', this.userJoinUpdateHandler);
         ipcRenderer.on('userLeaveUpdate', this.userLeaveUpdateHandler);
+        ipcRenderer.on('userInfoUpdate', this.userInfoUpdateHandler);
 
         ipcRenderer.send('getUsers', null);
     },
@@ -98,5 +103,6 @@ export default {
         ipcRenderer.removeListener('messageUpdate', this.messageUpdateHandler);
         ipcRenderer.removeListener('userJoinUpdate', this.userJoinUpdateHandler);
         ipcRenderer.removeListener('userLeaveUpdate', this.userLeaveUpdateHandler);
+        ipcRenderer.removeListener('userInfoUpdate', this.userInfoUpdateHandler);
     }
 }

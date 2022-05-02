@@ -1,0 +1,93 @@
+.picture-selector {
+    display: grid;
+    grid-template-areas: 
+        "instruction instruction"
+        "pictures controls-preview";
+    grid-gap: 10px;
+    padding: 5px 5px;
+    font-size: 13px;
+    overflow: hidden;
+    height: calc(100% - 18px);
+    width: 100%;
+    box-sizing: border-box;
+}
+
+.picture-selector > p {
+    width: 100%;
+    grid-area: instruction;
+}
+
+.picture-selector > .pictures {
+    grid-area: pictures;
+    height: 100%;
+    box-sizing: border-box;
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    grid-gap: 5px;
+    overflow-y: scroll;
+}
+
+.picture-selector > .pictures::-webkit-scrollbar {
+    width: 14px;
+}
+
+.picture-selector > .pictures::-webkit-scrollbar-thumb {
+    background: linear-gradient(90deg, #e2eaf3, #d9e3f9);
+    border: 1px solid #6d7d9e;
+}
+
+.picture-selector > .pictures::-webkit-scrollbar-track {
+    background: #e4eafa;
+}
+
+.picture-selector > .pictures > img {
+    width: 100%;
+    border: 1px solid #bfbeca;
+    border-radius: 4px;
+    box-sizing: border-box;
+    image-rendering: pixelated;
+}
+
+.picture-selector > .pictures > .target {
+    outline: 1px solid #f4ac29;
+}
+
+.picture-selector > .controls-and-preview {
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    grid-area: controls-preview;
+}
+
+.picture-selector > .controls-and-preview > .controls {
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    align-self: flex-start;
+}
+
+.picture-selector > .controls-and-preview > .controls > button {
+    background: linear-gradient(90deg, #ffffff, #dbe2fc);
+    border: 1px solid #f4ac29;
+    outline: 1px solid #36495e;
+    border-radius: 2px;
+    color: #304b8c;
+    font-weight: bold;
+    width: 75px;
+    align-self: center;
+    margin-bottom: 5px;
+}
+
+.picture-selector > .controls-and-preview > .controls > button:active {
+    filter: brightness(0.75);
+}
+
+.picture-selector > .controls-and-preview > .preview {
+    display: flex;
+    flex-direction: column;
+    margin-bottom: 5px;
+}
+
+.picture-selector > .controls-and-preview > .preview > img {
+    image-rendering: pixelated;
+}

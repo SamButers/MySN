@@ -45,16 +45,22 @@ export default {
 
         errorHandler(e, err) {
             alert(err);
+        },
+
+        pictureUpdateHandler(e, pictureId) {
+            this.user.picture = pictureId;
         }
     },
 
     mounted() {
         ipcRenderer.on('login', this.loginHandler);
         ipcRenderer.on('error', this.errorHandler);
+        ipcRenderer.on('pictureUpdate', this.pictureUpdateHandler);
     },
 
     unmounted() {
         ipcRenderer.removeListener('login', this.loginHandler);
         ipcRenderer.removeListener('error', this.errorHandler);
+        ipcRenderer.removeListener('pictureUpdate', this.pictureUpdateHandler);
     }
 }

@@ -10,6 +10,8 @@
     box-sizing: border-box;
     font-family: "MS Sans Serif";
 
+    overflow: hidden;
+
     font-smooth: never;
     -webkit-font-smoothing: none;
 
