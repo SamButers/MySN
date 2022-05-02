@@ -145,11 +145,14 @@ app.whenReady().then(() => {
 
     ipcMain.on('login', (e, username) => {
         client.connect(SERVER_PORT, SERVER_IP, () => {
-            const buffer = Buffer.alloc(1 + 1 + username.length);
+            const utf8Username = new TextEncoder('utf-8').encode(username);
+            const buffer = Buffer.alloc(1 + 1 + utf8Username.length);
             try {
                 buffer.writeInt8(0);
-                buffer.writeInt8(username.length, 1);
-                buffer.write(username, 2, username.length);
+                buffer.writeInt8(utf8Username.length, 1);
+
+                for(let c = 0; c < utf8Username.length; c++)
+                    buffer.writeUInt8(utf8Username[c], 2 + c);
 
                 user.name = username;
 
@@ -368,20 +371,24 @@ app.whenReady().then(() => {
     });
 
     ipcMain.on('createRoom', (e, roomInfo) => {
-        const roomName = roomInfo[0];
+        const roomName = new TextEncoder('utf-8').encode(roomInfo[0]);
+        const roomNameLength = roomName.length;
         const userLimit = roomInfo[1];
 
         const buffer = Buffer.alloc(roomName.length + 3);
         try {
             buffer.writeInt8(2);
             buffer.writeInt8(roomName.length, 1);
-            buffer.write(roomName, 2, roomName.length);
-            buffer.writeInt8(userLimit, roomName.length + 2);
+
+            for(let c = 0; c < roomNameLength; c += 1)
+                buffer.writeUInt8(roomName[c], 2 + c);
+
+            buffer.writeInt8(userLimit, roomNameLength + 2);
 
             client.write(buffer);
 
             pendingRoom = {
-                name: roomName,
+                name: roomInfo[0],
                 userLimit,
                 id: null,
                 users: 0
@@ -406,13 +413,16 @@ app.whenReady().then(() => {
     });
 
     ipcMain.on('sendMessage', (e, messageContent) => {
-        const messageLength = messageContent.length;
+        const utf8Content = new TextEncoder('utf-8').encode(messageContent);
+        const messageLength = utf8Content.length;
 
         const buffer = Buffer.alloc(3 + messageLength);
         try {
             buffer.writeInt8(4);
             buffer.writeInt16LE(messageLength, 1);
-            buffer.write(messageContent, 3, messageLength);
+
+            for(let c = 0; c < messageLength; c += 1)
+                buffer.writeUInt8(utf8Content[c], 3 + c);
 
             client.write(buffer);
 
