@@ -37,15 +37,24 @@ export default {
             this.user.name = username;
             ipcRenderer.send('login', username);
         },
+
         loginHandler(e, userId) {
             this.user.id = userId;
             this.view = 'hub';
+        },
+
+        errorHandler(e, err) {
+            alert(err);
         }
     },
+
     mounted() {
         ipcRenderer.on('login', this.loginHandler);
+        ipcRenderer.on('error', this.errorHandler);
     },
+
     unmounted() {
         ipcRenderer.removeListener('login', this.loginHandler);
+        ipcRenderer.removeListener('error', this.errorHandler);
     }
 }

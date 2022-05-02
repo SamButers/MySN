@@ -19,10 +19,23 @@ export default {
             userLimit: 24
         }
     },
+
     methods: {
         createRoom() {
             console.log('a')
             ipcRenderer.send('createRoom', [this.roomName, this.userLimit]);
+        },
+
+        errorHandler(e, err) {
+            alert(err);
         }
+    },
+
+    mounted() {
+        ipcRenderer.on('error', this.errorHandler);
+    },
+
+    unmounted() {
+        ipcRenderer.removeListener('error', this.errorHandler);
     }
 }

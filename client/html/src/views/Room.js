@@ -67,6 +67,10 @@ export default {
 
         userLeaveUpdateHandler(e, id) {
             delete this.users[id];
+        },
+
+        errorHandler(e, err) {
+            alert(err);
         }
     },
 
@@ -78,6 +82,7 @@ export default {
 
     mounted() {
         ipcRenderer.on('getUsers', this.getUsersHandler);
+        ipcRenderer.on('error', this.errorHandler);
 
         ipcRenderer.on('messageUpdate', this.messageUpdateHandler);
         ipcRenderer.on('userJoinUpdate', this.userJoinUpdateHandler);
@@ -88,6 +93,7 @@ export default {
 
     unmounted() {
         ipcRenderer.removeListener('getUsers', this.getUsersHandler);
+        ipcRenderer.removeListener('error', this.errorHandler);
 
         ipcRenderer.removeListener('messageUpdate', this.messageUpdateHandler);
         ipcRenderer.removeListener('userJoinUpdate', this.userJoinUpdateHandler);
