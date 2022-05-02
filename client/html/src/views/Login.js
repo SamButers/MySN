@@ -4,7 +4,7 @@ const template = `
     <img class="avatar" src="assets/img/avatar.png" draggable="false">
     <div class="fields">
         <label>Username:</label>
-        <input type="text" id="username" @keydown.enter="login()" ref="input">
+        <input v-model="username" type="text" id="username" @keydown.enter="login()" ref="input">
     </div>
 
         <button @click="login()">Sign In</button>
@@ -16,6 +16,12 @@ const template = `
 
 export default {
 	template,
+    data() {
+        return {
+            username: 'John Doe'
+        }
+    },
+
 	methods: {
 		login() {
 			this.$emit('login', this.$refs.input.value);

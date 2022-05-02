@@ -16,9 +16,10 @@ let user = {
     room: null
 };
 
-let pendingRoom = {};
 let rooms = {};
 let users = {};
+
+let pendingRoom = {};
 
 // Remove for production
 require('electron-reloader')(module, {
@@ -35,8 +36,8 @@ function createMainWindow() {
         backgroundColor: "#FFF",
         icon: path.join(__dirname, 'icon.ico'),
         webPreferences: {
-            nodeIntegration: true, // Presents security risks, but this application will not be deployed
-            contextIsolation: false // Presents security risks, but this application will not be deployed
+            nodeIntegration: true,
+            contextIsolation: false
         }
     });
 
@@ -44,6 +45,48 @@ function createMainWindow() {
     mainWindow.winType = 'main';
 
     windows.main = mainWindow;
+}
+
+function createRoomWindow() {
+    if(windows.room)
+        windows.room.close();
+
+    windows.room = new BrowserWindow({
+        width: 475,
+        height: 335,
+        titleBarStyle: 'hidden',
+        frame: false,
+        backgroundColor: "#FFF",
+        icon: path.join(__dirname, 'icon.ico'),
+        webPreferences: {
+            nodeIntegration: true,
+            contextIsolation: false
+        }
+    });
+
+    windows.room.loadFile('html/room.html');
+    windows.room.winType = 'room';
+}
+
+function createPromptWindow() {
+    if(windows.prompt)
+            return;
+
+    windows.prompt = new BrowserWindow({
+        width: 250,
+        height: 175,
+        titleBarStyle: 'hidden',
+        frame: false,
+        backgroundColor: "#FFF",
+        icon: path.join(__dirname, 'icon.ico'),
+        webPreferences: {
+            nodeIntegration: true,
+            contextIsolation: false
+        }
+    });
+
+    windows.prompt.loadFile('html/prompt.html');
+    windows.prompt.winType = 'prompt';
 }
 
 function createPictureWindow() {
@@ -58,8 +101,8 @@ function createPictureWindow() {
         backgroundColor: "#FFF",
         icon: path.join(__dirname, 'icon.ico'),
         webPreferences: {
-            nodeIntegration: true, // Presents security risks, but this application will not be deployed
-            contextIsolation: false // Presents security risks, but this application will not be deployed
+            nodeIntegration: true,
+            contextIsolation: false
         }
     });
 
@@ -68,26 +111,8 @@ function createPictureWindow() {
 }
 
 function joinRoom(roomId) {
-    if(windows.room)
-        windows.room.close();
-
     user.room = roomId;
-
-    windows.room = new BrowserWindow({
-        width: 475,
-        height: 335,
-        titleBarStyle: 'hidden',
-        frame: false,
-        backgroundColor: "#FFF",
-        icon: path.join(__dirname, 'icon.ico'),
-        webPreferences: {
-            nodeIntegration: true, // Presents security risks, but this application will not be deployed
-            contextIsolation: false // Presents security risks, but this application will not be deployed
-        }
-    });
-
-    windows.room.loadFile('html/room.html');
-    windows.room.winType = 'room';
+    createRoomWindow();
 }
 
 function leaveRoom() {
@@ -108,6 +133,24 @@ function loopbackMessage(content) {
     });
 }
 
+function closeWindow(targetWindow = undefined) {
+    if(!targetWindow)
+        targetWindow = BrowserWindow.getFocusedWindow();
+
+    if(targetWindow.winType == 'room') {
+        windows.room = null;
+        leaveRoom();
+    }
+
+    else if(targetWindow.winType == 'prompt')
+        windows.prompt = null;
+
+    else if(targetWindow.winType == 'picture')
+        windows.picture = null;
+
+    targetWindow.close();
+}
+
 app.whenReady().then(() => {
     createMainWindow();
 
@@ -116,20 +159,7 @@ app.whenReady().then(() => {
     });
 
     ipcMain.on('closeSubWindow', (e, arg) => {
-        const currentWindow = BrowserWindow.getFocusedWindow();
-
-        if(currentWindow.winType == 'room') {
-            windows.room = null;
-            leaveRoom();
-        }
-
-        else if(currentWindow.winType == 'prompt')
-            windows.prompt = null;
-
-        else if(currentWindow.winType == 'picture')
-            windows.picture = null;
-
-        currentWindow.close();
+        closeWindow();
     });
 
     ipcMain.on('maximizeWindow', (e, args) => {
@@ -147,24 +177,15 @@ app.whenReady().then(() => {
     });
 
     ipcMain.on('popupPrompt', (e, args) => {
-        if(windows.prompt)
-            return;
+        createPromptWindow();
+    });
 
-        windows.prompt = new BrowserWindow({
-            width: 250,
-            height: 175,
-            titleBarStyle: 'hidden',
-            frame: false,
-            backgroundColor: "#FFF",
-            icon: path.join(__dirname, 'icon.ico'),
-            webPreferences: {
-                nodeIntegration: true, // Presents security risks, but this application will not be deployed
-                contextIsolation: false // Presents security risks, but this application will not be deployed
-            }
-        });
+    ipcMain.on('getPicture', (e, _) => {
+        windows.picture.webContents.send('getPicture', user.pictureId);
+    });
 
-        windows.prompt.loadFile('html/prompt.html');
-        windows.prompt.winType = 'prompt';
+    ipcMain.on('openPictureWindow', (e, _) => {
+        createPictureWindow();
     });
 
     ipcMain.on('login', (e, username) => {
@@ -319,10 +340,12 @@ app.whenReady().then(() => {
 
                                     user.pictureId = pictureId;
                                     windows.main.webContents.send('pictureUpdate', pictureId);
-                                    windows.room.webContents.send('userInfoUpdate', {
-                                        id: user.id,
-                                        pictureId
-                                    });
+
+                                    if(windows.room)
+                                        windows.room.webContents.send('userInfoUpdate', {
+                                            id: user.id,
+                                            pictureId
+                                        });
 
                                     break;
                                 }
@@ -594,21 +617,16 @@ app.whenReady().then(() => {
         }
     });
 
-    ipcMain.on('getPicture', (e, _) => {
-        windows.picture.webContents.send('getPicture', user.pictureId);
-    });
-
-    ipcMain.on('openPictureWindow', (e, _) => {
-        createPictureWindow();
-    });
-
     ipcMain.on('updateInfo', (e, pictureId) => {
+        
         const buffer = Buffer.alloc(2);
         try {
             buffer.writeInt8(6);
             buffer.writeInt8(pictureId, 1);
 
             client.write(buffer);
+
+            closeWindow(windows.picture);
         } catch(e) {
             console.log(e);
         }
