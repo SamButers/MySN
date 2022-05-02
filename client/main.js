@@ -211,25 +211,23 @@ app.whenReady().then(() => {
                 client.write(buffer);
 
                 client.on('data', (data) => {
-                    let offset = 0;
+                    let unreadData = data;
 
                     dataLoop:
-                    while(offset < data.length) {
-                        const currentOffset = offset;
-
-                        const dataType = data.readInt8(currentOffset);
-                        const functionId = data.readInt8(1 + currentOffset);
-
-                        offset += 2;
+                    while(unreadData.length) {
+                        const dataType = unreadData.readInt8();
+                        const functionId = unreadData.readInt8(1);
 
                         if(dataType == 0) {
                             switch(functionId) {
                                 case 0: {
-                                    const userId = data.readInt32LE(2 + currentOffset);
-                                    offset += 4;
+                                    const userId = unreadData.readInt32LE(2);
+
+                                    unreadData = unreadData.subarray(6);
 
                                     if(userId == -1) {
                                         windows.main.webContents.send('error', "A login error has occurred.");
+
                                         break dataLoop;
                                     }
 
@@ -240,20 +238,24 @@ app.whenReady().then(() => {
                                 }
 
                                 case 2: {
-                                    const roomId = data.readInt32LE(2 + currentOffset);
-                                    offset += 4;
+                                    const roomId = unreadData.readInt32LE(2);
+
+                                    unreadData = unreadData.subarray(6);
 
                                     switch(roomId) {
                                         case -1:
                                             windows.prompt.webContents.send('error', "An error has occurred during room creation.");
+
                                             break dataLoop;
 
                                         case -3:
                                             windows.prompt.webContents.send('error', "Cannot create room while in a room.");
+                                            
                                             break dataLoop;
 
                                         case -4:
                                             windows.prompt.webContents.send('error', "Room user limit needs to be at least 2.");
+                                            
                                             break dataLoop;
                                     }
 
@@ -271,20 +273,24 @@ app.whenReady().then(() => {
                                 }
 
                                 case 3: {
-                                    const roomId = data.readInt32LE(2 + currentOffset);
-                                    offset += 4;
+                                    const roomId = unreadData.readInt32LE(2);
+
+                                    unreadData = unreadData.subarray(6);
 
                                     switch(roomId) {
                                         case -1:
                                             windows.main.webContents.send('error', "An error has occurred during room join.");
+
                                             break dataLoop;
 
                                         case -2:
                                             windows.main.webContents.send('error', "Cannot join. Room is full.");
+
                                             break dataLoop;
 
                                         case -3:
                                             windows.main.webContents.send('error', "Cannot join. Already in a room.");
+
                                             break dataLoop;
                                     }
 
@@ -298,16 +304,19 @@ app.whenReady().then(() => {
                                 }
 
                                 case 4: {
-                                    const status = data.readInt8(2 + currentOffset);
-                                    offset += 1;
+                                    const status = unreadData.readInt8(2);
+
+                                    unreadData = unreadData.subarray(3);
 
                                     switch(status) {
                                         case -1:
                                             windows.room.webContents.send('error', "An error has occurred during message sending.");
+
                                             break dataLoop;
 
                                         case -2:
                                             windows.room.webContents.send('error', "Cannot send message. Not in a room.");
+
                                             break dataLoop;
                                     }
 
@@ -315,8 +324,9 @@ app.whenReady().then(() => {
                                 }
 
                                 case 5: {
-                                    const roomId = data.readInt32LE(2 + currentOffset);
-                                    offset += 4;
+                                    const roomId = unreadData.readInt32LE(2);
+
+                                    unreadData = unreadData.subarray(6);
 
                                     if(!roomId)
                                         user.room = null;
@@ -330,11 +340,13 @@ app.whenReady().then(() => {
                                 }
 
                                 case 6: {
-                                    const pictureId = data.readInt8(2 + currentOffset);
-                                    offset += 1;
+                                    const pictureId = unreadData.readInt8(2);
+
+                                    unreadData = unreadData.subarray(3);
 
                                     if(pictureId == -1) {
                                         windows.main.webContents.send('error', "An error has occurred during picture changing.");
+                                        
                                         break dataLoop;
                                     }
 
@@ -355,14 +367,14 @@ app.whenReady().then(() => {
 
                                     let id, userLimit, users, nameLength, name;
 
-                                    const roomCount = data.readInt32LE(2 + currentOffset);
+                                    const roomCount = unreadData.readInt32LE(2);
 
                                     for(let c = 0; c < roomCount; c += 1) {
-                                        id = data.readInt32LE(bytes + currentOffset);
-                                        userLimit = data.readInt8(bytes + 4 + currentOffset);
-                                        users = data.readInt8(bytes + 5 + currentOffset);
-                                        nameLength = data.readInt8(bytes + 6 + currentOffset);
-                                        name = data.toString('utf8', bytes + 7 + currentOffset, bytes + 7 + nameLength + currentOffset);
+                                        id = unreadData.readInt32LE(bytes);
+                                        userLimit = unreadData.readInt8(bytes + 4);
+                                        users = unreadData.readInt8(bytes + 5);
+                                        nameLength = unreadData.readInt8(bytes + 6);
+                                        name = unreadData.toString('utf8', bytes + 7, bytes + 7 + nameLength);
 
                                         rooms[id] = {
                                             id,
@@ -376,7 +388,8 @@ app.whenReady().then(() => {
 
                                     windows.main.webContents.send('getRooms', rooms);
 
-                                    offset += bytes - 2;
+                                    unreadData = unreadData.subarray(bytes);
+
                                     break;
                                 }
 
@@ -385,15 +398,15 @@ app.whenReady().then(() => {
 
                                     let id, pictureId, nameLength, name;
 
-                                    const userCount = data.readInt8(2 + currentOffset);
+                                    const userCount = unreadData.readInt8(2);
 
                                     users = {};
 
                                     for(let c = 0; c < userCount; c += 1) {
-                                        id = data.readInt32LE(bytes + currentOffset);
-                                        pictureId = data.readInt8(bytes + 4 + currentOffset);
-                                        nameLength = data.readInt8(bytes + 5 + currentOffset);
-                                        name = data.toString('utf8', bytes + 6 + currentOffset, bytes + 6 + nameLength + currentOffset);
+                                        id = unreadData.readInt32LE(bytes);
+                                        pictureId = unreadData.readInt8(bytes + 4);
+                                        nameLength = unreadData.readInt8(bytes + 5);
+                                        name = unreadData.toString('utf8', bytes + 6, bytes + 6 + nameLength);
 
                                         users[id] = {
                                             id,
@@ -406,7 +419,7 @@ app.whenReady().then(() => {
 
                                     windows.room.webContents.send('getUsers', users);
 
-                                    offset += bytes - 2;
+                                    unreadData = unreadData.subarray(bytes);
                                     break;
                                 }
 
@@ -418,10 +431,8 @@ app.whenReady().then(() => {
                         else {
                             switch(functionId) {
                                 case 0: {
-                                    const id = data.readInt32LE(2 + currentOffset);
-                                    const userLimit = data.readInt8(6 + currentOffset);
-
-                                    offset += 5;
+                                    const id = unreadData.readInt32LE(2);
+                                    const userLimit = unreadData.readInt8(6);
 
                                     if(userLimit == -1) {
                                         delete rooms[id];
@@ -430,12 +441,14 @@ app.whenReady().then(() => {
                                             id,
                                             userLimit: -1
                                         });
+
+                                        unreadData = unreadData.subarray(7);
                                         break;
                                     }
 
-                                    const users = data.readInt8(7 + currentOffset);
-                                    const nameLength = data.readInt8(8 + currentOffset);
-                                    const name = data.toString('utf8', 9 + currentOffset, 9 + nameLength + currentOffset);
+                                    const users = unreadData.readInt8(7);
+                                    const nameLength = unreadData.readInt8(8);
+                                    const name = unreadData.toString('utf8', 9, 9 + nameLength);
 
                                     rooms[id] = {
                                         id,
@@ -446,29 +459,29 @@ app.whenReady().then(() => {
 
                                     windows.main.webContents.send('roomUpdate', rooms[id]);
 
-                                    offset += 2 + nameLength;
+                                    unreadData = unreadData.subarray(9 + nameLength);
                                     break;
                                 }
 
                                 case 1: {
-                                    const userId = data.readInt32LE(2 + currentOffset);
-                                    const messageLength = data.readInt16LE(6 + currentOffset);
-                                    const messageContent = data.toString('utf8', 8 + currentOffset, 8 + messageLength + currentOffset);
+                                    const userId = unreadData.readInt32LE(2);
+                                    const messageLength = unreadData.readInt16LE(6);
+                                    const messageContent = unreadData.toString('utf8', 8 , 8 + messageLength);
 
                                     windows.room.webContents.send('messageUpdate', {
                                         userId,
                                         content: messageContent
                                     });
 
-                                    offset += 6 + messageLength;
+                                    unreadData = unreadData.subarray(8 + messageLength);
                                     break;
                                 }
 
                                 case 2: {
-                                    const id = data.readInt32LE(2 + currentOffset);
-                                    const pictureId = data.readInt8(6 + currentOffset);
-                                    const nameLength = data.readInt8(7 + currentOffset);
-                                    const name = data.toString('utf8', 8 + currentOffset, 8 + nameLength + currentOffset);
+                                    const id = unreadData.readInt32LE(2);
+                                    const pictureId = unreadData.readInt8(6);
+                                    const nameLength = unreadData.readInt8(7);
+                                    const name = unreadData.toString('utf8', 8, 8 + nameLength);
 
                                     users[id] = {
                                         id,
@@ -478,24 +491,24 @@ app.whenReady().then(() => {
 
                                     windows.room.webContents.send('userJoinUpdate', users[id]);
 
-                                    offset += 6 + nameLength;
+                                    unreadData = unreadData.subarray(8 + nameLength);
                                     break;
                                 }
 
                                 case 3: {
-                                    const id = data.readInt32LE(2 + currentOffset);
+                                    const id = unreadData.readInt32LE(2);
 
                                     delete user[id];
 
                                     windows.room.webContents.send('userLeaveUpdate', id);
 
-                                    offset += 4;
+                                    unreadData = unreadData.subarray(6);
                                     break;
                                 }
 
                                 case 4: {
-                                    const id = data.readInt32LE(2 + currentOffset);
-                                    const pictureId = data.readInt8(6 + currentOffset);
+                                    const id = unreadData.readInt32LE(2);
+                                    const pictureId = unreadData.readInt8(6);
 
                                     users[id].pictureId = pictureId;
 
@@ -504,7 +517,7 @@ app.whenReady().then(() => {
                                         pictureId
                                     });
 
-                                    offset += 5;
+                                    unreadData = unreadData.subarray(7);
                                     break;
                                 }
 
