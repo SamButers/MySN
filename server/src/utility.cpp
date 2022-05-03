@@ -1,5 +1,6 @@
 #include "utility.hpp"
 
+// Reads and clear descriptor with invalid data
 void clearDescriptor(int descriptor) {
     int readBytes = recv(descriptor, &flushBuffer, FLUSH_BUFFER_SIZE, MSG_DONTWAIT);
 

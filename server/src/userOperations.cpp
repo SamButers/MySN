@@ -73,10 +73,6 @@ char sendMessage(int descriptor, char *content, int length) {
     if(targetRoom == NULL)
         return -1;
 
-    map<int, User*>::iterator it = targetRoom->users.begin();
-    map<int, User*>::iterator end = targetRoom->users.end();
-
-    int userDescriptor;
     char *buffer = (char*) malloc(8 + length);
 
     buffer[0] = 1;
@@ -85,14 +81,7 @@ char sendMessage(int descriptor, char *content, int length) {
     memcpy(buffer + 6, &length, 2);
     memcpy(buffer + 8, content, length);
 
-    while(it != end) {
-        userDescriptor = it->first;
-
-        if(userDescriptor != descriptor)
-            write(userDescriptor, buffer, length + 8);
-
-        it++;
-    }
+    sendBufferToUsers(buffer, length + 8, targetRoom->users, descriptor);
 
     free(buffer);
     return 0;
@@ -163,7 +152,7 @@ int getRooms() {
     map<int, Room*>::iterator it = rooms.begin();
     Room *currentRoom;
 
-    bytes = 6; // Reserved Bytes
+    bytes = 6; // Reserved and room count bytes
     roomCount = 0;
 
     while(it != rooms.end()) {
@@ -207,7 +196,7 @@ int getUsers(int descriptor) {
     map<int, User*>::iterator it = targetRoom->users.begin();
     map<int, User*>::iterator end = targetRoom->users.end();
 
-    bytes = 3; // Reserved Bytes
+    bytes = 3; // Reserved and user count bytes
     userCount = (char) targetRoom->users.size();
 
     while(it != end) {

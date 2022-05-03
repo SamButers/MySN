@@ -37,7 +37,7 @@ char roomInfoBuffer[68102];
 char userInfoBuffer[16897];
 char roomUpdateBuffer[136];
 
-//
+//User operations thread handler
 void *userOperationsHandler(void *params) {
     int updatedDescriptors, bytesRead;
     char functionNumber;
@@ -63,6 +63,7 @@ void *userOperationsHandler(void *params) {
             }
 
             switch(functionNumber) {
+                // Login message parsing
                 case 0: {
                     int usernameLength, id;
                     char *username;
@@ -98,12 +99,15 @@ void *userOperationsHandler(void *params) {
                     break;
                 }
 
+
+                // Logoff message parsing
                 case 1: {
                     logoutUser(events[c].data.fd);
 
                     break;
                 }
 
+                // Create room message parsing
                 case 2: {
                     int roomNameLength, roomId;
                     char userLimit;
@@ -162,6 +166,7 @@ void *userOperationsHandler(void *params) {
                     break;
                 }
 
+                // Join room message parsing
                 case 3: {
                     int roomId;
 
@@ -185,6 +190,7 @@ void *userOperationsHandler(void *params) {
                     break;
                 }
 
+                // Message message parsing
                 case 4: {
                     int messageLength = 0;
                     char status;
@@ -219,6 +225,7 @@ void *userOperationsHandler(void *params) {
                     break;
                 }
 
+                // Leave room message parsing
                 case 5: {
                     int roomId = leaveRoom(events[c].data.fd);
 
@@ -231,6 +238,7 @@ void *userOperationsHandler(void *params) {
                     break;
                 }
 
+                // Update info message parsing
                 case 6: {
                     char pictureId = 0;
 
@@ -252,6 +260,7 @@ void *userOperationsHandler(void *params) {
                     break;
                 }
 
+                // Get rooms message parsing
                 case 7: {
                     
                     int bytes = getRooms();
@@ -264,6 +273,7 @@ void *userOperationsHandler(void *params) {
                     break;
                 }
 
+                // Get users message parsing
                 case 8: {
                     int bytes = getUsers(events[c].data.fd);
 
