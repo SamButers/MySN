@@ -89,6 +89,7 @@
     display: block;
     margin-left: 4px;
     font-size: 13px;
+    word-break: break-word;
 }
 
 .chatroom > .input > .toolbar {
