@@ -9,8 +9,7 @@ const { loopbackMessage } = require('./src/handlerUtils.js');
 
 const client = new net.Socket();
 
-const SERVER_IP = '127.0.0.1';
-const SERVER_PORT = 8080;
+const { SERVER_IP, SERVER_PORT } = require('./config.json');
 
 app.whenReady().then(() => {
     createMainWindow();

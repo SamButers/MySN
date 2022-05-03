@@ -289,12 +289,10 @@ void *userOperationsHandler(void *params) {
                     break;
             }
         }
-    }
-
-    
+    }  
 }
 
-int main() {
+int main(int argc, char *argv[]) {
     sockaddr_in serverAddress;
     sockaddr_in clientAddress;
 
@@ -312,8 +310,18 @@ int main() {
 
     memset((char*) &serverAddress, 0, sizeof(serverAddress));
     serverAddress.sin_family = AF_INET;
-    serverAddress.sin_addr.s_addr = inet_addr(SERVER_IP);
-    serverAddress.sin_port = htons(SERVER_PORT);
+
+    // Use default IP and PORT values
+    if(argc < 3) {
+        serverAddress.sin_addr.s_addr = inet_addr(SERVER_IP);
+        serverAddress.sin_port = htons(SERVER_PORT);
+    }
+
+    // Use parameters value
+    else {
+        serverAddress.sin_addr.s_addr = inet_addr(argv[1]);
+        serverAddress.sin_port = htons(atoi(argv[2]));
+    }
 
     if((serverDescriptor = socket(AF_INET, SOCK_STREAM, 0)) < 0) {
         printf("Error during socket creation.\n");
