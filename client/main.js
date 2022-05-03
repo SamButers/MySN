@@ -338,6 +338,9 @@ app.whenReady().then(() => {
                                         content: messageContent
                                     });
 
+                                    if(!commonVariables.windows.room.isFocused())
+                                        commonVariables.windows.room.webContents.send('playNotification', null);
+
                                     unreadData = unreadData.subarray(8 + messageLength);
                                     break;
                                 }

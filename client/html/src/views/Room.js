@@ -24,6 +24,8 @@ const template = `
 const { ipcRenderer } = require('electron');
 const sanitizeHtml = require('sanitize-html');
 
+let notificationAudio;
+
 export default {
     template,
     data() {
@@ -77,6 +79,11 @@ export default {
 
         userInfoUpdateHandler(e, userInfo) {
             this.users[userInfo.id].pictureId = userInfo.pictureId;
+        },
+
+        playNotificationHandler(e, _) {
+            notificationAudio.currentTime = 0;
+            notificationAudio.play();
         }
     },
 
@@ -87,6 +94,8 @@ export default {
     },
 
     mounted() {
+        notificationAudio = new Audio('assets/snd/notification.mp3');
+
         ipcRenderer.on('getUsers', this.getUsersHandler);
         ipcRenderer.on('error', this.errorHandler);
 
@@ -94,6 +103,7 @@ export default {
         ipcRenderer.on('userJoinUpdate', this.userJoinUpdateHandler);
         ipcRenderer.on('userLeaveUpdate', this.userLeaveUpdateHandler);
         ipcRenderer.on('userInfoUpdate', this.userInfoUpdateHandler);
+        ipcRenderer.on('playNotification', this.playNotificationHandler);
 
         ipcRenderer.send('getUsers', null);
     },
