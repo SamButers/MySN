@@ -631,7 +631,6 @@ app.whenReady().then(() => {
     });
 
     ipcMain.on('updateInfo', (e, pictureId) => {
-        
         const buffer = Buffer.alloc(2);
         try {
             buffer.writeInt8(6);

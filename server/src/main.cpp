@@ -19,32 +19,11 @@
 #include <map>
 #include <iterator>
 
-#define MAX_USERS   256
-#define MAX_ROOMS   256
-#define SERVER_IP   "127.0.0.1"
-#define SERVER_PORT 8080
-#define FLUSH_BUFFER_SIZE 64000
+#include "definitions.hpp"
+#include "utility.hpp"
+#include "updateFunctions.hpp"
 
 using namespace std;
-
-typedef struct sockaddr_in sockaddr_in;
-
-typedef struct User {
-    int id, pictureId, descriptor, roomId;
-    char* name;
-} User;
-
-typedef struct Room {
-    int id, userLimit;
-    char nameLength;
-    char* name;
-    std::map<int, User*> users;
-} Room;
-
-typedef struct Message {
-    int userId;
-    char *content;
-} Message;
 
 map<int, User*> users;
 map<int, Room*> rooms;
@@ -54,196 +33,11 @@ int epollDescriptor;
 
 sem_t epollSemaphor, usersSemaphor, roomsSemaphor;
 
-// Buffers
 char flushBuffer[FLUSH_BUFFER_SIZE];
 char roomInfoBuffer[68102];
 char userInfoBuffer[16897];
 char roomUpdateBuffer[136];
 
-//Utility functions
-void clearDescriptor(int descriptor) {
-    printf("Reading...\n");
-    int readBytes = recv(descriptor, &flushBuffer, FLUSH_BUFFER_SIZE, MSG_DONTWAIT);
-    printf("READ IT\n");
-
-    if(readBytes < 0)
-        printf("Error on flushing.\n");
-    else
-        printf("Flushed bytes: %d\n", readBytes);
-}
-
-int sendErrorResponse(int descriptor, char functionId, char *buffer) {
-    int writtenBytes;
-
-    int integerResponse;
-    char byteResponse;
-
-    buffer[0] = 0;
-    buffer[1] = functionId;
-
-    switch(functionId) {
-        case -1:
-            return write(descriptor, buffer, 2) != 2;
-
-        case 6:
-        case 3:
-        case 2:
-        case 0:
-            integerResponse = -1;
-            memcpy(buffer + 2, &integerResponse, 4);
-
-            return write(descriptor, buffer, 6) != 6;
-
-        case 4:
-            buffer[2] = -1;
-
-            return write(descriptor, buffer, 3) != 3;
-
-        default:
-            return 1;
-    }
-}
-
-void deleteRoom(Room *room) {
-    rooms.erase(room->id);
-
-    free(room->name);
-    delete room;
-}
-
-int getRandomRoomId() {
-    int id;
-
-    do {
-        id = abs(rand());
-    } while(rooms.find(id) != rooms.end());
-
-    return id;
-}
-
-void sendBufferToUsers(char *buffer, int bytes, map<int, User*> &users, int updaterDescriptor) {
-    map<int, User*>::iterator it = users.begin();
-    map<int, User*>::iterator end = users.end();
-
-    int userDescriptor;
-
-    while(it != end) {
-        userDescriptor = it->first;
-
-        if(userDescriptor != updaterDescriptor)
-            send(userDescriptor, buffer, bytes);
-
-        it++;
-    }
-}
-// End of utility functions
-
-// Update functions
-
-void sendUserJoinUpdate(Room *room, User *user) {
-    int userDescriptor;
-    int userNameLength = strlen(user->name);
-    char *buffer = (char*) malloc(8 + userNameLength);
-
-    buffer[0] = 1;
-    buffer[1] = 2;
-
-    userDescriptor = user->descriptor;
-
-    memcpy(buffer + 2, &(user->id), 4);
-    buffer[6] = (char) user->pictureId;
-    buffer[7] = (char) userNameLength;
-    memcpy(buffer + 8, user->name, userNameLength);
-
-    sendBufferToUsers(buffer, 8 + userNameLength, room->users, userDescriptor);
-
-    free(buffer);
-}
-
-void sendUserLeaveUpdate(Room *room, User *user) {
-    char *buffer = (char*) malloc(6);
-
-    buffer[0] = 1;
-    buffer[1] = 3;
-    memcpy(buffer + 2, &(user->id), 4);
-
-    sendBufferToUsers(buffer, 6, room->users, -1);
-
-    free(buffer);
-}
-
-void userInfoUpdate(Room *room, User *user) {
-    int userDescriptor;
-    char *buffer = (char*) malloc(7);
-
-    buffer[0] = 1;
-    buffer[1] = 4;
-    memcpy(buffer + 2, &(user->id), 4);
-    buffer[6] = (char) user->pictureId;
-
-    userDescriptor = user->descriptor;
-
-    sendBufferToUsers(buffer, 7, room->users, userDescriptor);
-
-    free(buffer);
-}
-
-void sendUserUpdate(Room *room, User *user, char type) {
-    switch(type) {
-        case 0:
-            printf("LEAVE UPDATE\n");
-            sendUserLeaveUpdate(room, user);
-            break;
-        case 1:
-            printf("JOIN UPDATE\n");
-            sendUserJoinUpdate(room, user);
-            break;
-        case 2:
-            printf("INFO UPDATE");
-            userInfoUpdate(room, user);
-            break;
-        default:
-            return;
-    }
-}
-
-void sendRoomUpdate(Room *room, int updaterDescriptor) {
-    printf("ROOMS UUPDATE\n");
-    int reservedBytes;
-    char userAmount;
-
-    reservedBytes = 2;
-    userAmount = (char) room->users.size();
-
-    roomUpdateBuffer[0] = 1;
-    roomUpdateBuffer[1] = 0;
-
-    memcpy(roomUpdateBuffer + reservedBytes, &(room->id), 4);
-    memcpy(roomUpdateBuffer + 4 + reservedBytes, &(room->userLimit), 1);
-    roomUpdateBuffer[5 + reservedBytes] = userAmount;
-    roomUpdateBuffer[6 + reservedBytes] = room->nameLength;
-    memcpy(roomUpdateBuffer + 7 + reservedBytes, room->name, (size_t) room->nameLength);
-
-    sendBufferToUsers(roomUpdateBuffer, reservedBytes + 7 + (int) room->nameLength, users, updaterDescriptor);
-}
-
-void sendRoomDeletionUpdate(Room *room) {
-    int reservedBytes;
-
-    reservedBytes = 2;
-
-    roomUpdateBuffer[0] = 1;
-    roomUpdateBuffer[1] = 0;
-
-    memcpy(roomUpdateBuffer + reservedBytes, &(room->id), 4);
-    roomUpdateBuffer[4 + reservedBytes] = -1;
-
-    sendBufferToUsers(roomUpdateBuffer, reservedBytes + 5, users, -1);
-
-    deleteRoom(room);
-}
-
-// End of update functions
 
 // User operation functions
 int loginUser(int descriptor, char *displayName, int displayNameSize) {
