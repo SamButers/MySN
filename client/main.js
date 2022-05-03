@@ -14,6 +14,7 @@ const { SERVER_IP, SERVER_PORT } = require('./config.json');
 app.whenReady().then(() => {
     createMainWindow();
 
+    // Quit app when main window is closed
     commonVariables.windows.main.on('closed', () => {
         app.quit();
     });
@@ -22,6 +23,7 @@ app.whenReady().then(() => {
         app.quit();
     });
 
+    // Closes a window other than the main window
     ipcMain.on('closeSubWindow', (e, arg) => {
         closeWindow(null, client);
     });
@@ -40,6 +42,7 @@ app.whenReady().then(() => {
         currentWindow.minimize();
     });
 
+    // Creates room creation prompt
     ipcMain.on('popupPrompt', (e, args) => {
         createPromptWindow();
     });
@@ -48,6 +51,7 @@ app.whenReady().then(() => {
         commonVariables.windows.picture.webContents.send('getPicture', commonVariables.user.pictureId);
     });
 
+    // Creates picture selection window
     ipcMain.on('openPictureWindow', (e, _) => {
         createPictureWindow();
     });
@@ -67,6 +71,7 @@ app.whenReady().then(() => {
                 buffer.writeInt8(0);
                 buffer.writeInt8(usernameLength, 1);
 
+                // Writes each UTF8 character as an UInt8
                 for(let c = 0; c < usernameLength; c++)
                     buffer.writeUInt8(utf8Username[c], 2 + c);
 
@@ -77,13 +82,16 @@ app.whenReady().then(() => {
                 client.on('data', (data) => {
                     let unreadData = data;
 
+                    // Loop while there is still unread data
                     dataLoop:
                     while(unreadData.length) {
                         const dataType = unreadData.readInt8();
                         const functionId = unreadData.readInt8(1);
 
+                        // User operation response
                         if(dataType == 0) {
                             switch(functionId) {
+                                // Login response
                                 case 0: {
                                     const userId = unreadData.readInt32LE(2);
 
@@ -101,6 +109,7 @@ app.whenReady().then(() => {
                                     break;
                                 }
 
+                                // Create room response
                                 case 2: {
                                     const roomId = unreadData.readInt32LE(2);
 
@@ -136,6 +145,7 @@ app.whenReady().then(() => {
                                     break;
                                 }
 
+                                // Room join response
                                 case 3: {
                                     const roomId = unreadData.readInt32LE(2);
 
@@ -167,6 +177,7 @@ app.whenReady().then(() => {
                                     break;
                                 }
 
+                                // Message sending response
                                 case 4: {
                                     const status = unreadData.readInt8(2);
 
@@ -187,6 +198,7 @@ app.whenReady().then(() => {
                                     break;
                                 }
 
+                                // Room leave response
                                 case 5: {
                                     const roomId = unreadData.readInt32LE(2);
 
@@ -203,6 +215,7 @@ app.whenReady().then(() => {
                                     break;
                                 }
 
+                                // User info response
                                 case 6: {
                                     const pictureId = unreadData.readInt8(2);
 
@@ -226,6 +239,7 @@ app.whenReady().then(() => {
                                     break;
                                 }
 
+                                // Get rooms response
                                 case 7: {
                                     let bytes = 6;
 
@@ -257,6 +271,7 @@ app.whenReady().then(() => {
                                     break;
                                 }
 
+                                // Get users response
                                 case 8: {
                                     let bytes = 3;
 
@@ -292,8 +307,10 @@ app.whenReady().then(() => {
                             }
                         }
 
+                        // Updates
                         else {
                             switch(functionId) {
+                                // Room update
                                 case 0: {
                                     const id = unreadData.readInt32LE(2);
                                     const userLimit = unreadData.readInt8(6);
@@ -327,6 +344,7 @@ app.whenReady().then(() => {
                                     break;
                                 }
 
+                                // Message update
                                 case 1: {
                                     const userId = unreadData.readInt32LE(2);
                                     const messageLength = unreadData.readInt16LE(6);
@@ -344,6 +362,7 @@ app.whenReady().then(() => {
                                     break;
                                 }
 
+                                // User join update
                                 case 2: {
                                     const id = unreadData.readInt32LE(2);
                                     const pictureId = unreadData.readInt8(6);
@@ -362,6 +381,7 @@ app.whenReady().then(() => {
                                     break;
                                 }
 
+                                // User leave update
                                 case 3: {
                                     const id = unreadData.readInt32LE(2);
 
@@ -373,6 +393,7 @@ app.whenReady().then(() => {
                                     break;
                                 }
 
+                                // User info update
                                 case 4: {
                                     const id = unreadData.readInt32LE(2);
                                     const pictureId = unreadData.readInt8(6);
