@@ -4,59 +4,13 @@ const net = require('net');
 
 const commonVariables = require('./src/commonVariables.js');
 
-const { createMainWindow, createRoomWindow, createPromptWindow, createPictureWindow } = require('./src/windows.js');
+const { createMainWindow, createRoomWindow, createPromptWindow, createPictureWindow, closeWindow, joinRoom, leaveRoom } = require('./src/windows.js');
+const { loopbackMessage } = require('./src/handlerUtils.js');
 
 const client = new net.Socket();
 
 const SERVER_IP = '127.0.0.1';
 const SERVER_PORT = 8080;
-
-// Remove for production
-require('electron-reloader')(module, {
-    debug: true,
-    watchRenderer: true
-});
-
-function joinRoom(roomId) {
-    commonVariables.user.room = roomId;
-    createRoomWindow();
-}
-
-function leaveRoom() {
-    const buffer = Buffer.alloc(1);
-    try {
-        buffer.writeInt8(5);
-
-        client.write(buffer);
-    } catch(e) {
-        console.log(e);
-    }
-}
-
-function loopbackMessage(content) {
-    commonVariables.windows.room.webContents.send('messageUpdate', {
-        userId: commonVariables.user.id,
-        content
-    });
-}
-
-function closeWindow(targetWindow = undefined) {
-    if(!targetWindow)
-        targetWindow = BrowserWindow.getFocusedWindow();
-
-    if(targetWindow.winType == 'room') {
-        commonVariables.windows.room = null;
-        leaveRoom();
-    }
-
-    else if(targetWindow.winType == 'prompt')
-        commonVariables.windows.prompt = null;
-
-    else if(targetWindow.winType == 'picture')
-        commonVariables.windows.picture = null;
-
-    targetWindow.close();
-}
 
 app.whenReady().then(() => {
     createMainWindow();
@@ -66,7 +20,7 @@ app.whenReady().then(() => {
     });
 
     ipcMain.on('closeSubWindow', (e, arg) => {
-        closeWindow();
+        closeWindow(null, client);
     });
 
     ipcMain.on('maximizeWindow', (e, args) => {

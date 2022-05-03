@@ -86,4 +86,38 @@ function createPictureWindow() {
     commonVariables.windows.picture.winType = 'picture';
 }
 
-module.exports = { createMainWindow, createRoomWindow, createPromptWindow, createPictureWindow };
+function closeWindow(targetWindow = null, client = null) {
+    if(!targetWindow)
+        targetWindow = BrowserWindow.getFocusedWindow();
+
+    if(targetWindow.winType == 'room') {
+        commonVariables.windows.room = null;
+        leaveRoom(client);
+    }
+
+    else if(targetWindow.winType == 'prompt')
+        commonVariables.windows.prompt = null;
+
+    else if(targetWindow.winType == 'picture')
+        commonVariables.windows.picture = null;
+
+    targetWindow.close();
+}
+
+function joinRoom(roomId) {
+    commonVariables.user.room = roomId;
+    createRoomWindow();
+}
+
+function leaveRoom(client) {
+    const buffer = Buffer.alloc(1);
+    try {
+        buffer.writeInt8(5);
+
+        client.write(buffer);
+    } catch(e) {
+        console.log(e);
+    }
+}
+
+module.exports = { createMainWindow, createRoomWindow, createPromptWindow, createPictureWindow, closeWindow, joinRoom, leaveRoom };
