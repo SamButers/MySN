@@ -6,7 +6,7 @@ const template = `
         <div class="input">
             <div class="toolbar"></div>
             <div class="message-area">
-                <textarea id="message-input" ref="messageInput" @keydown.enter="sendMessage()"></textarea>
+                <textarea id="message-input" ref="messageInput" @keydown.enter.prevent="sendMessage()"></textarea>
                 <button @click="sendMessage()">Send</button>
             </div>
             <div class="toolbar"></div>
