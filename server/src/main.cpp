@@ -48,7 +48,7 @@ void *userOperationsHandler(void *params) {
         updatedDescriptors = epoll_wait(epollDescriptor, events, MAX_USERS, -1);
         
         for(int c = 0; c < updatedDescriptors; c++) {
-            bytesRead = read(events[c].data.fd, &functionNumber, 1);
+            bytesRead = recv(events[c].data.fd, &functionNumber, 1, MSG_DONTWAIT);
 
             if(bytesRead != 1) {
                 if(bytesRead == 0) {
@@ -70,7 +70,7 @@ void *userOperationsHandler(void *params) {
 
                     usernameLength = 0;
 
-                    bytesRead = read(events[c].data.fd, &usernameLength, 1);
+                    bytesRead = recv(events[c].data.fd, &usernameLength, 1, MSG_DONTWAIT);
                     if(bytesRead != 1) {
                         clearDescriptor(events[c].data.fd);
                         sendErrorResponse(events[c].data.fd, 0, responseBuffer);
@@ -79,7 +79,7 @@ void *userOperationsHandler(void *params) {
 
                     username = (char*) malloc(usernameLength + 1);
 
-                    bytesRead = read(events[c].data.fd, username, usernameLength);
+                    bytesRead = recv(events[c].data.fd, username, usernameLength, MSG_DONTWAIT);
                     if(bytesRead != usernameLength) {
                         clearDescriptor(events[c].data.fd);
                         sendErrorResponse(events[c].data.fd, 0, responseBuffer);
@@ -93,7 +93,7 @@ void *userOperationsHandler(void *params) {
                     responseBuffer[1] = 0;
                     memcpy(responseBuffer + 2, &id, 4);
 
-                    write(events[c].data.fd, responseBuffer, 6);
+                    send(events[c].data.fd, responseBuffer, 6, MSG_DONTWAIT);
 
                     free(username);
                     break;
@@ -115,7 +115,7 @@ void *userOperationsHandler(void *params) {
 
                     roomNameLength = userLimit = 0;
 
-                    bytesRead = read(events[c].data.fd, &roomNameLength, 1);
+                    bytesRead = recv(events[c].data.fd, &roomNameLength, 1, MSG_DONTWAIT);
                     if(bytesRead != 1) {
                         
                         
@@ -126,7 +126,7 @@ void *userOperationsHandler(void *params) {
 
                     roomName = (char*) malloc(roomNameLength + 1);
 
-                    bytesRead = read(events[c].data.fd, roomName, roomNameLength);
+                    bytesRead = recv(events[c].data.fd, roomName, roomNameLength, MSG_DONTWAIT);
                     if(bytesRead != roomNameLength) {
                         clearDescriptor(events[c].data.fd);
                         sendErrorResponse(events[c].data.fd, 2, responseBuffer);
@@ -135,7 +135,7 @@ void *userOperationsHandler(void *params) {
 
                     roomName[roomNameLength] = '\0';
 
-                    bytesRead = read(events[c].data.fd, &userLimit, 1);
+                    bytesRead = recv(events[c].data.fd, &userLimit, 1, MSG_DONTWAIT);
                     if(bytesRead != 1) {
                         clearDescriptor(events[c].data.fd);
                         sendErrorResponse(events[c].data.fd, 2, responseBuffer);
@@ -148,7 +148,7 @@ void *userOperationsHandler(void *params) {
                         roomId = -4;
                         memcpy(responseBuffer + 2, &roomId, 4);
 
-                        write(events[c].data.fd, responseBuffer, 6);
+                        send(events[c].data.fd, responseBuffer, 6, MSG_DONTWAIT);
                         break;
                     }
 
@@ -159,7 +159,7 @@ void *userOperationsHandler(void *params) {
                     responseBuffer[1] = 2;
                     memcpy(responseBuffer + 2, &roomId, 4);
 
-                    write(events[c].data.fd, responseBuffer, 6);
+                    send(events[c].data.fd, responseBuffer, 6, MSG_DONTWAIT);
 
                     free(roomName);
 
@@ -170,7 +170,7 @@ void *userOperationsHandler(void *params) {
                 case 3: {
                     int roomId;
 
-                    bytesRead = read(events[c].data.fd, &roomId, 4);
+                    bytesRead = recv(events[c].data.fd, &roomId, 4, MSG_DONTWAIT);
                     if(bytesRead != 4) {
                         
                         
@@ -185,7 +185,7 @@ void *userOperationsHandler(void *params) {
                     responseBuffer[1] = 3;
                     memcpy(responseBuffer + 2, &roomId, 4);
 
-                    write(events[c].data.fd, responseBuffer, 6);
+                    send(events[c].data.fd, responseBuffer, 6, MSG_DONTWAIT);
 
                     break;
                 }
@@ -196,7 +196,7 @@ void *userOperationsHandler(void *params) {
                     char status;
                     char *messageContent;
 
-                    bytesRead = read(events[c].data.fd, &messageLength, 2);
+                    bytesRead = recv(events[c].data.fd, &messageLength, 2, MSG_DONTWAIT);
                     if(bytesRead != 2) {
                         clearDescriptor(events[c].data.fd);
                         sendErrorResponse(events[c].data.fd, 4, responseBuffer);
@@ -205,7 +205,7 @@ void *userOperationsHandler(void *params) {
 
                     messageContent = (char*) malloc(messageLength);
 
-                    bytesRead = read(events[c].data.fd, messageContent, messageLength);
+                    bytesRead = recv(events[c].data.fd, messageContent, messageLength, MSG_DONTWAIT);
                     if(bytesRead != messageLength) {
                         clearDescriptor(events[c].data.fd);
                         sendErrorResponse(events[c].data.fd, 4, responseBuffer);
@@ -218,7 +218,7 @@ void *userOperationsHandler(void *params) {
                     responseBuffer[1] = 4;
                     memcpy(responseBuffer + 2, &status, 1);
 
-                    write(events[c].data.fd, responseBuffer, 3);
+                    send(events[c].data.fd, responseBuffer, 3, MSG_DONTWAIT);
 
                     free(messageContent);
 
@@ -233,7 +233,7 @@ void *userOperationsHandler(void *params) {
                     responseBuffer[1] = 5;
                     memcpy(responseBuffer + 2, &roomId, 4);
 
-                    write(events[c].data.fd, responseBuffer, 6);
+                    send(events[c].data.fd, responseBuffer, 6, MSG_DONTWAIT);
 
                     break;
                 }
@@ -242,7 +242,7 @@ void *userOperationsHandler(void *params) {
                 case 6: {
                     char pictureId = 0;
 
-                    bytesRead = read(events[c].data.fd, &pictureId, 1);
+                    bytesRead = recv(events[c].data.fd, &pictureId, 1, MSG_DONTWAIT);
                     if(bytesRead != 1) {
                         clearDescriptor(events[c].data.fd);
                         sendErrorResponse(events[c].data.fd, 6, responseBuffer);
@@ -255,7 +255,7 @@ void *userOperationsHandler(void *params) {
                     responseBuffer[1] = 6;
                     responseBuffer[2] = pictureId;
 
-                    write(events[c].data.fd, responseBuffer, 3);
+                    send(events[c].data.fd, responseBuffer, 3, MSG_DONTWAIT);
 
                     break;
                 }
@@ -268,7 +268,7 @@ void *userOperationsHandler(void *params) {
                     roomInfoBuffer[0] = 0;
                     roomInfoBuffer[1] = 7;
 
-                    write(events[c].data.fd, roomInfoBuffer, bytes);
+                    send(events[c].data.fd, roomInfoBuffer, bytes, MSG_DONTWAIT);
 
                     break;
                 }
@@ -280,7 +280,7 @@ void *userOperationsHandler(void *params) {
                     userInfoBuffer[0] = 0;
                     userInfoBuffer[1] = 8;
 
-                    write(events[c].data.fd, userInfoBuffer, bytes);
+                    send(events[c].data.fd, userInfoBuffer, bytes, MSG_DONTWAIT);
 
                     break;
                 }

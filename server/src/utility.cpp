@@ -21,7 +21,7 @@ int sendErrorResponse(int descriptor, char functionId, char *buffer) {
 
     switch(functionId) {
         case -1:
-            return write(descriptor, buffer, 2) != 2;
+            return send(descriptor, buffer, 2, MSG_DONTWAIT) != 2;
 
         case 6:
         case 3:
@@ -30,12 +30,12 @@ int sendErrorResponse(int descriptor, char functionId, char *buffer) {
             integerResponse = -1;
             memcpy(buffer + 2, &integerResponse, 4);
 
-            return write(descriptor, buffer, 6) != 6;
+            return send(descriptor, buffer, 6, MSG_DONTWAIT) != 6;
 
         case 4:
             buffer[2] = -1;
 
-            return write(descriptor, buffer, 3) != 3;
+            return send(descriptor, buffer, 3, MSG_DONTWAIT) != 3;
 
         default:
             return 1;
@@ -69,7 +69,7 @@ void sendBufferToUsers(char *buffer, int bytes, map<int, User*> &users, int upda
         userDescriptor = it->first;
 
         if(userDescriptor != updaterDescriptor)
-            write(userDescriptor, buffer, bytes);
+            send(userDescriptor, buffer, bytes, MSG_DONTWAIT);
 
         it++;
     }
