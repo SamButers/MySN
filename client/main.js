@@ -2,24 +2,14 @@ const { app, BrowserWindow, ipcMain } = require('electron');
 const path = require('path');
 const net = require('net');
 
+const commonVariables = require('./src/commonVariables.js');
+
+const { createMainWindow, createRoomWindow, createPromptWindow, createPictureWindow } = require('./src/windows.js');
+
 const client = new net.Socket();
 
 const SERVER_IP = '127.0.0.1';
 const SERVER_PORT = 8080;
-
-const windows = {};
-
-let user = {
-    id: null,
-    username: null,
-    picture: 0,
-    room: null
-};
-
-let rooms = {};
-let users = {};
-
-let pendingRoom = {};
 
 // Remove for production
 require('electron-reloader')(module, {
@@ -27,91 +17,8 @@ require('electron-reloader')(module, {
     watchRenderer: true
 });
 
-function createMainWindow() {
-    const mainWindow = new BrowserWindow({
-        width: 405,
-        height: 660,
-        titleBarStyle: 'hidden',
-        frame: false,
-        backgroundColor: "#FFF",
-        icon: path.join(__dirname, 'icon.ico'),
-        webPreferences: {
-            nodeIntegration: true,
-            contextIsolation: false
-        }
-    });
-
-    mainWindow.loadFile('html/index.html');
-    mainWindow.winType = 'main';
-
-    windows.main = mainWindow;
-}
-
-function createRoomWindow() {
-    if(windows.room)
-        windows.room.close();
-
-    windows.room = new BrowserWindow({
-        width: 475,
-        height: 335,
-        titleBarStyle: 'hidden',
-        frame: false,
-        backgroundColor: "#FFF",
-        icon: path.join(__dirname, 'icon.ico'),
-        webPreferences: {
-            nodeIntegration: true,
-            contextIsolation: false
-        }
-    });
-
-    windows.room.loadFile('html/room.html');
-    windows.room.winType = 'room';
-}
-
-function createPromptWindow() {
-    if(windows.prompt)
-            return;
-
-    windows.prompt = new BrowserWindow({
-        width: 250,
-        height: 175,
-        titleBarStyle: 'hidden',
-        frame: false,
-        backgroundColor: "#FFF",
-        icon: path.join(__dirname, 'icon.ico'),
-        webPreferences: {
-            nodeIntegration: true,
-            contextIsolation: false
-        }
-    });
-
-    windows.prompt.loadFile('html/prompt.html');
-    windows.prompt.winType = 'prompt';
-}
-
-function createPictureWindow() {
-    if(windows.picture)
-        windows.picture.close();
-
-    windows.picture = new BrowserWindow({
-        width: 475,
-        height: 475,
-        titleBarStyle: 'hidden',
-        frame: false,
-        backgroundColor: "#FFF",
-        icon: path.join(__dirname, 'icon.ico'),
-        webPreferences: {
-            nodeIntegration: true,
-            contextIsolation: false
-        }
-    });
-
-    windows.picture.loadFile('html/picture.html');
-    windows.picture.winType = 'picture';
-}
-
 function joinRoom(roomId) {
-    user.room = roomId;
+    commonVariables.user.room = roomId;
     createRoomWindow();
 }
 
@@ -127,8 +34,8 @@ function leaveRoom() {
 }
 
 function loopbackMessage(content) {
-    windows.room.webContents.send('messageUpdate', {
-        userId: user.id,
+    commonVariables.windows.room.webContents.send('messageUpdate', {
+        userId: commonVariables.user.id,
         content
     });
 }
@@ -138,15 +45,15 @@ function closeWindow(targetWindow = undefined) {
         targetWindow = BrowserWindow.getFocusedWindow();
 
     if(targetWindow.winType == 'room') {
-        windows.room = null;
+        commonVariables.windows.room = null;
         leaveRoom();
     }
 
     else if(targetWindow.winType == 'prompt')
-        windows.prompt = null;
+        commonVariables.windows.prompt = null;
 
     else if(targetWindow.winType == 'picture')
-        windows.picture = null;
+        commonVariables.windows.picture = null;
 
     targetWindow.close();
 }
@@ -181,7 +88,7 @@ app.whenReady().then(() => {
     });
 
     ipcMain.on('getPicture', (e, _) => {
-        windows.picture.webContents.send('getPicture', user.pictureId);
+        commonVariables.windows.picture.webContents.send('getPicture', commonVariables.user.pictureId);
     });
 
     ipcMain.on('openPictureWindow', (e, _) => {
@@ -193,7 +100,7 @@ app.whenReady().then(() => {
         const usernameLength = utf8Username.length;
 
         if(usernameLength > 127) {
-            windows.main.webContents.send('error', `Username length is past 127 characters! ${usernameLength} characters currently. (Special characters use multiple characters!)`);
+            commonVariables.windows.main.webContents.send('error', `Username length is past 127 characters! ${usernameLength} characters currently. (Special characters use multiple characters!)`);
             return;
         }
 
@@ -206,7 +113,7 @@ app.whenReady().then(() => {
                 for(let c = 0; c < usernameLength; c++)
                     buffer.writeUInt8(utf8Username[c], 2 + c);
 
-                user.name = username;
+                commonVariables.user.name = username;
 
                 client.write(buffer);
 
@@ -226,13 +133,13 @@ app.whenReady().then(() => {
                                     unreadData = unreadData.subarray(6);
 
                                     if(userId == -1) {
-                                        windows.main.webContents.send('error', "A login error has occurred.");
+                                        commonVariables.windows.main.webContents.send('error', "A login error has occurred.");
 
                                         break dataLoop;
                                     }
 
-                                    user.id = userId;
-                                    windows.main.webContents.send('login', userId);
+                                    commonVariables.user.id = userId;
+                                    commonVariables.windows.main.webContents.send('login', userId);
 
                                     break;
                                 }
@@ -244,28 +151,28 @@ app.whenReady().then(() => {
 
                                     switch(roomId) {
                                         case -1:
-                                            windows.prompt.webContents.send('error', "An error has occurred during room creation.");
+                                            commonVariables.windows.prompt.webContents.send('error', "An error has occurred during room creation.");
 
                                             break dataLoop;
 
                                         case -3:
-                                            windows.prompt.webContents.send('error', "Cannot create room while in a room.");
+                                            commonVariables.windows.prompt.webContents.send('error', "Cannot create room while in a room.");
                                             
                                             break dataLoop;
 
                                         case -4:
-                                            windows.prompt.webContents.send('error', "Room user limit needs to be at least 2.");
+                                            commonVariables.windows.prompt.webContents.send('error', "Room user limit needs to be at least 2.");
                                             
                                             break dataLoop;
                                     }
 
-                                    pendingRoom.id = roomId;
-                                    pendingRoom.users += 1;
+                                    commonVariables.pendingRoom.id = roomId;
+                                    commonVariables.pendingRoom.users += 1;
 
-                                    windows.main.webContents.send('roomUpdate', pendingRoom);
+                                    commonVariables.windows.main.webContents.send('roomUpdate', commonVariables.pendingRoom);
 
-                                    windows.prompt.close();
-                                    windows.prompt = null;
+                                    commonVariables.windows.prompt.close();
+                                    commonVariables.windows.prompt = null;
 
                                     joinRoom(roomId);
 
@@ -279,24 +186,24 @@ app.whenReady().then(() => {
 
                                     switch(roomId) {
                                         case -1:
-                                            windows.main.webContents.send('error', "An error has occurred during room join.");
+                                            commonVariables.windows.main.webContents.send('error', "An error has occurred during room join.");
 
                                             break dataLoop;
 
                                         case -2:
-                                            windows.main.webContents.send('error', "Cannot join. Room is full.");
+                                            commonVariables.windows.main.webContents.send('error', "Cannot join. Room is full.");
 
                                             break dataLoop;
 
                                         case -3:
-                                            windows.main.webContents.send('error', "Cannot join. Already in a room.");
+                                            commonVariables.windows.main.webContents.send('error', "Cannot join. Already in a room.");
 
                                             break dataLoop;
                                     }
 
-                                    rooms[roomId].users += 1;
+                                    commonVariables.rooms[roomId].users += 1;
 
-                                    windows.main.webContents.send('roomUpdate', rooms[roomId]);
+                                    commonVariables.windows.main.webContents.send('roomUpdate', commonVariables.rooms[roomId]);
 
                                     joinRoom(roomId);
 
@@ -310,12 +217,12 @@ app.whenReady().then(() => {
 
                                     switch(status) {
                                         case -1:
-                                            windows.room.webContents.send('error', "An error has occurred during message sending.");
+                                            commonVariables.windows.room.webContents.send('error', "An error has occurred during message sending.");
 
                                             break dataLoop;
 
                                         case -2:
-                                            windows.room.webContents.send('error', "Cannot send message. Not in a room.");
+                                            commonVariables.windows.room.webContents.send('error', "Cannot send message. Not in a room.");
 
                                             break dataLoop;
                                     }
@@ -329,10 +236,10 @@ app.whenReady().then(() => {
                                     unreadData = unreadData.subarray(6);
 
                                     if(!roomId)
-                                        user.room = null;
+                                        commonVariables.user.room = null;
 
                                     else {
-                                        windows.main.webContents.send('error', "An error has occurred during room leaving.");
+                                        commonVariables.windows.main.webContents.send('error', "An error has occurred during room leaving.");
                                         break dataLoop;
                                     }
 
@@ -345,17 +252,17 @@ app.whenReady().then(() => {
                                     unreadData = unreadData.subarray(3);
 
                                     if(pictureId == -1) {
-                                        windows.main.webContents.send('error', "An error has occurred during picture changing.");
+                                        commonVariables.windows.main.webContents.send('error', "An error has occurred during picture changing.");
                                         
                                         break dataLoop;
                                     }
 
-                                    user.pictureId = pictureId;
-                                    windows.main.webContents.send('pictureUpdate', pictureId);
+                                    commonVariables.user.pictureId = pictureId;
+                                    commonVariables.windows.main.webContents.send('pictureUpdate', pictureId);
 
-                                    if(windows.room)
-                                        windows.room.webContents.send('userInfoUpdate', {
-                                            id: user.id,
+                                    if(commonVariables.windows.room)
+                                        commonVariables.windows.room.webContents.send('userInfoUpdate', {
+                                            id: commonVariables.user.id,
                                             pictureId
                                         });
 
@@ -376,7 +283,7 @@ app.whenReady().then(() => {
                                         nameLength = unreadData.readInt8(bytes + 6);
                                         name = unreadData.toString('utf8', bytes + 7, bytes + 7 + nameLength);
 
-                                        rooms[id] = {
+                                        commonVariables.rooms[id] = {
                                             id,
                                             userLimit,
                                             users,
@@ -386,7 +293,7 @@ app.whenReady().then(() => {
                                         bytes += 7 + nameLength;
                                     }
 
-                                    windows.main.webContents.send('getRooms', rooms);
+                                    commonVariables.windows.main.webContents.send('getRooms', commonVariables.rooms);
 
                                     unreadData = unreadData.subarray(bytes);
 
@@ -400,7 +307,7 @@ app.whenReady().then(() => {
 
                                     const userCount = unreadData.readInt8(2);
 
-                                    users = {};
+                                    commonVariables.users = {};
 
                                     for(let c = 0; c < userCount; c += 1) {
                                         id = unreadData.readInt32LE(bytes);
@@ -408,7 +315,7 @@ app.whenReady().then(() => {
                                         nameLength = unreadData.readInt8(bytes + 5);
                                         name = unreadData.toString('utf8', bytes + 6, bytes + 6 + nameLength);
 
-                                        users[id] = {
+                                        commonVariables.users[id] = {
                                             id,
                                             pictureId,
                                             name
@@ -417,7 +324,7 @@ app.whenReady().then(() => {
                                         bytes += 6 + nameLength;
                                     }
 
-                                    windows.room.webContents.send('getUsers', users);
+                                    commonVariables.windows.room.webContents.send('getUsers', commonVariables.users);
 
                                     unreadData = unreadData.subarray(bytes);
                                     break;
@@ -435,9 +342,9 @@ app.whenReady().then(() => {
                                     const userLimit = unreadData.readInt8(6);
 
                                     if(userLimit == -1) {
-                                        delete rooms[id];
+                                        delete commonVariables.rooms[id];
 
-                                        windows.main.webContents.send('roomUpdate', {
+                                        commonVariables.windows.main.webContents.send('roomUpdate', {
                                             id,
                                             userLimit: -1
                                         });
@@ -450,14 +357,14 @@ app.whenReady().then(() => {
                                     const nameLength = unreadData.readInt8(8);
                                     const name = unreadData.toString('utf8', 9, 9 + nameLength);
 
-                                    rooms[id] = {
+                                    commonVariables.rooms[id] = {
                                         id,
                                         userLimit,
                                         users,
                                         name
                                     };
 
-                                    windows.main.webContents.send('roomUpdate', rooms[id]);
+                                    commonVariables.windows.main.webContents.send('roomUpdate', commonVariables.rooms[id]);
 
                                     unreadData = unreadData.subarray(9 + nameLength);
                                     break;
@@ -468,7 +375,7 @@ app.whenReady().then(() => {
                                     const messageLength = unreadData.readInt16LE(6);
                                     const messageContent = unreadData.toString('utf8', 8 , 8 + messageLength);
 
-                                    windows.room.webContents.send('messageUpdate', {
+                                    commonVariables.windows.room.webContents.send('messageUpdate', {
                                         userId,
                                         content: messageContent
                                     });
@@ -483,13 +390,13 @@ app.whenReady().then(() => {
                                     const nameLength = unreadData.readInt8(7);
                                     const name = unreadData.toString('utf8', 8, 8 + nameLength);
 
-                                    users[id] = {
+                                    commonVariables.users[id] = {
                                         id,
                                         pictureId,
                                         name
                                     };
 
-                                    windows.room.webContents.send('userJoinUpdate', users[id]);
+                                    commonVariables.windows.room.webContents.send('userJoinUpdate', commonVariables.users[id]);
 
                                     unreadData = unreadData.subarray(8 + nameLength);
                                     break;
@@ -498,9 +405,9 @@ app.whenReady().then(() => {
                                 case 3: {
                                     const id = unreadData.readInt32LE(2);
 
-                                    delete user[id];
+                                    delete commonVariables.user[id];
 
-                                    windows.room.webContents.send('userLeaveUpdate', id);
+                                    commonVariables.windows.room.webContents.send('userLeaveUpdate', id);
 
                                     unreadData = unreadData.subarray(6);
                                     break;
@@ -510,9 +417,9 @@ app.whenReady().then(() => {
                                     const id = unreadData.readInt32LE(2);
                                     const pictureId = unreadData.readInt8(6);
 
-                                    users[id].pictureId = pictureId;
+                                    commonVariables.users[id].pictureId = pictureId;
 
-                                    windows.room.webContents.send('userInfoUpdate', {
+                                    commonVariables.windows.room.webContents.send('userInfoUpdate', {
                                         id,
                                         pictureId
                                     });
@@ -564,7 +471,7 @@ app.whenReady().then(() => {
         const userLimit = roomInfo[1];
 
         if(roomNameLength > 127) {
-            windows.prompt.webContents.send('error', `Room name length is past 127 characters! ${roomNameLength} characters currently. (Special characters use multiple characters!)`);
+            commonVariables.windows.prompt.webContents.send('error', `Room name length is past 127 characters! ${roomNameLength} characters currently. (Special characters use multiple characters!)`);
             return;
         }
 
@@ -580,7 +487,7 @@ app.whenReady().then(() => {
 
             client.write(buffer);
 
-            pendingRoom = {
+            commonVariables.pendingRoom = {
                 name: roomInfo[0],
                 userLimit,
                 id: null,
@@ -610,7 +517,7 @@ app.whenReady().then(() => {
         const messageLength = utf8Content.length;
 
         if(messageLength > 32767) {
-            windows.room.webContents.send('error', `Message length is past 32.767 characters! ${messageLength} characters currently. (Special characters use multiple characters!)`);
+            commonVariables.windows.room.webContents.send('error', `Message length is past 32.767 characters! ${messageLength} characters currently. (Special characters use multiple characters!)`);
             return;
         }
 
@@ -638,7 +545,7 @@ app.whenReady().then(() => {
 
             client.write(buffer);
 
-            closeWindow(windows.picture);
+            closeWindow(commonVariables.windows.picture);
         } catch(e) {
             console.log(e);
         }

@@ -7,7 +7,6 @@
 #include <semaphore.h>
 
 #define MAX_USERS   256
-#define MAX_ROOMS   256
 #define SERVER_IP   "127.0.0.1"
 #define SERVER_PORT 8080
 #define FLUSH_BUFFER_SIZE 64000
@@ -39,7 +38,7 @@ extern int userCounter;
 
 extern int epollDescriptor;
 
-extern sem_t epollSemaphor, usersSemaphor, roomsSemaphor;
+extern sem_t epollSemaphor;
 
 extern char flushBuffer[FLUSH_BUFFER_SIZE];
 extern char roomInfoBuffer[68102];

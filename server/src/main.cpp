@@ -30,7 +30,7 @@ int userCounter;
 
 int epollDescriptor;
 
-sem_t epollSemaphor, usersSemaphor, roomsSemaphor;
+sem_t epollSemaphor;
 
 char flushBuffer[FLUSH_BUFFER_SIZE];
 char roomInfoBuffer[68102];
@@ -50,6 +50,7 @@ void *userOperationsHandler(void *params) {
         
         for(int c = 0; c < updatedDescriptors; c++) {
             bytesRead = read(events[c].data.fd, &functionNumber, 1);
+
             if(bytesRead != 1) {
                 if(bytesRead == 0) {
                     printf("User sudden disconnection.\n");
@@ -110,14 +111,7 @@ void *userOperationsHandler(void *params) {
                 }
 
                 case 1: {
-                    // Logout
                     printf("Logout\n");
-
-                    //responseBuffer[0] = 0;
-                    //responseBuffer[1] = 0;
-                    //responseBuffer[2] = 0;
-
-                    //write(events[c].data.fd, responseBuffer, 3);
 
                     logoutUser(events[c].data.fd);
 
@@ -125,7 +119,6 @@ void *userOperationsHandler(void *params) {
                 }
 
                 case 2: {
-                    // Create room
                     printf("Create room\n");
 
                     int roomNameLength, userLimit, roomId;
@@ -191,7 +184,6 @@ void *userOperationsHandler(void *params) {
                 }
 
                 case 3: {
-                    // Join room
                     printf("Join room.\n");
                     int roomId;
 
@@ -216,7 +208,6 @@ void *userOperationsHandler(void *params) {
                 }
 
                 case 4: {
-                    // Send message
                     printf("Send message.\n");
 
                     int messageLength = 0;
@@ -245,8 +236,6 @@ void *userOperationsHandler(void *params) {
                         break;
                     }
 
-                    //messageContent[messageLength] = '\0';
-
                     status = sendMessage(events[c].data.fd, messageContent, messageLength);
 
                     responseBuffer[0] = 0;
@@ -261,7 +250,6 @@ void *userOperationsHandler(void *params) {
                 }
 
                 case 5: {
-                    // Leave room
                     printf("Leave room\n");
                     int roomId = leaveRoom(events[c].data.fd);
 
@@ -275,7 +263,6 @@ void *userOperationsHandler(void *params) {
                 }
 
                 case 6: {
-                    // Change info
                     printf("Change info.\n");
                     int pictureId = 0;
 
@@ -300,7 +287,6 @@ void *userOperationsHandler(void *params) {
                 }
 
                 case 7: {
-                    // Get rooms
                     printf("Get rooms\n");
                     int bytes = getRooms();
 
@@ -313,7 +299,6 @@ void *userOperationsHandler(void *params) {
                 }
 
                 case 8: {
-                    // Get users
                     printf("Get users\n");
                     int bytes = getUsers(events[c].data.fd);
 
@@ -344,7 +329,7 @@ int main() {
     int addressSize;
     int connectionsCounter;
 
-    pthread_t userOperationsThread, chatroomThreads[MAX_ROOMS];
+    pthread_t userOperationsThread;
 
     struct epoll_event *event;
 
@@ -377,8 +362,6 @@ int main() {
         return 1;
     }
 
-    sem_init(&usersSemaphor, 0, 1);
-    sem_init(&roomsSemaphor, 0, 1);
     sem_init(&epollSemaphor, 0, 1);
 
     pthread_create(&userOperationsThread, NULL, &userOperationsHandler, NULL);
@@ -402,7 +385,6 @@ int main() {
 
             sem_post(&epollSemaphor);
 
-            // pingNewUserDescriptor();
             connectionsCounter++;
         }
 
