@@ -7,6 +7,8 @@ Or
 
 > npm install
 
+The "config.json" file allows the configuration of the target server's IP and port.
+
 ## Usage
 The application will load into a Login screen where the user can insert their desired username. <br>
 

@@ -8,7 +8,10 @@ The server will be compiled into a binary called "mysn_server.bin". <br>
 Therefore, to run the server simply execute the following command:
 > ./mysn_server.bin
 
-Server IP and PORT can be changed by modifying the "definitions.hpp" files in the inc/ folder. <br>
+Optionally, the server can be given two parameters: server IP and port. For instance, to have the server listening on 127.0.0.2:8081, execute:
+> ./mysn_server.bin 127.0.0.2 8081
+
+Not giving both parameters will default to 127.0.0.1:8080. <br>
 
 To clean the directory, use the following command:
 > make clean
