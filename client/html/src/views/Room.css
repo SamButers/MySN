@@ -20,6 +20,8 @@
     box-sizing: border-box;
     padding-top: 4px;
     overflow-y: scroll;
+    overscroll-behavior-y: contain;
+    scroll-snap-type: y proximity;
 }
 
 .chatroom > .messages::-webkit-scrollbar {
@@ -60,6 +62,10 @@
 
 .chatroom > .messages > .message {
     margin-bottom: 8px;
+}
+
+.chatroom > .messages > .message:last-child {
+    scroll-snap-align: end;
 }
 
 .chatroom > .messages > .message > .user-info {
