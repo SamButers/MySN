@@ -11,7 +11,7 @@ void sendUserJoinUpdate(Room *room, User *user) {
     userDescriptor = user->descriptor;
 
     memcpy(buffer + 2, &(user->id), 4);
-    buffer[6] = (char) user->pictureId;
+    buffer[6] = user->pictureId;
     buffer[7] = (char) userNameLength;
     memcpy(buffer + 8, user->name, userNameLength);
 
@@ -39,7 +39,7 @@ void userInfoUpdate(Room *room, User *user) {
     buffer[0] = 1;
     buffer[1] = 4;
     memcpy(buffer + 2, &(user->id), 4);
-    buffer[6] = (char) user->pictureId;
+    buffer[6] = user->pictureId;
 
     userDescriptor = user->descriptor;
 
@@ -79,7 +79,7 @@ void sendRoomUpdate(Room *room, int updaterDescriptor) {
     roomUpdateBuffer[1] = 0;
 
     memcpy(roomUpdateBuffer + reservedBytes, &(room->id), 4);
-    memcpy(roomUpdateBuffer + 4 + reservedBytes, &(room->userLimit), 1);
+    roomUpdateBuffer[4 + reservedBytes] = room->userLimit;
     roomUpdateBuffer[5 + reservedBytes] = userAmount;
     roomUpdateBuffer[6 + reservedBytes] = room->nameLength;
     memcpy(roomUpdateBuffer + 7 + reservedBytes, room->name, (size_t) room->nameLength);

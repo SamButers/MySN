@@ -16,13 +16,14 @@ using namespace std;
 typedef struct sockaddr_in sockaddr_in;
 
 typedef struct User {
-    int id, pictureId, descriptor, roomId;
+    int id, descriptor, roomId;
+    char pictureId;
     char* name;
 } User;
 
 typedef struct Room {
-    int id, userLimit;
-    char nameLength;
+    int id;
+    char nameLength, userLimit;
     char* name;
     std::map<int, User*> users;
 } Room;

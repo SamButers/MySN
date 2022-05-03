@@ -121,7 +121,8 @@ void *userOperationsHandler(void *params) {
                 case 2: {
                     printf("Create room\n");
 
-                    int roomNameLength, userLimit, roomId;
+                    int roomNameLength, roomId;
+                    char userLimit;
                     char *roomName;
 
                     roomNameLength = userLimit = 0;
@@ -264,7 +265,7 @@ void *userOperationsHandler(void *params) {
 
                 case 6: {
                     printf("Change info.\n");
-                    int pictureId = 0;
+                    char pictureId = 0;
 
                     bytesRead = read(events[c].data.fd, &pictureId, 1);
                     if(bytesRead != 1) {
@@ -279,7 +280,7 @@ void *userOperationsHandler(void *params) {
 
                     responseBuffer[0] = 0;
                     responseBuffer[1] = 6;
-                    responseBuffer[2] = (char) pictureId;
+                    responseBuffer[2] = pictureId;
 
                     write(events[c].data.fd, responseBuffer, 3);
 

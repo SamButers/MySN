@@ -17,10 +17,10 @@
 #include "update.hpp"
 
 int loginUser(int descriptor, char *displayName, int displayNameSize);
-int createRoom(char *roomName, int roomNameLength, int userLimit);
+int createRoom(char *roomName, int roomNameLength, char userLimit);
 int joinRoom(int descriptor, int roomId);
 char sendMessage(int descriptor, char *content, int length);
-int changeInfo(int descriptor, int pictureId);
+char changeInfo(int descriptor, char pictureId);
 int leaveRoom(int descriptor);
 void logoutUser(int descriptor);
 int getRooms();

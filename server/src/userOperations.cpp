@@ -29,7 +29,7 @@ int loginUser(int descriptor, char *displayName, int displayNameSize) {
 
 // Pending:
 //  Send update
-int createRoom(char *roomName, int roomNameLength, int userLimit) {
+int createRoom(char *roomName, int roomNameLength, char userLimit) {
     Room *newRoom = new Room();
 
     newRoom->id = getRandomRoomId();
@@ -107,7 +107,7 @@ char sendMessage(int descriptor, char *content, int length) {
     return 0;
 }
 
-int changeInfo(int descriptor, int pictureId) {
+char changeInfo(int descriptor, char pictureId) {
     User *targetUser = users.find(descriptor) != users.end() ? users[descriptor] : NULL;
     Room *targetRoom;
 
@@ -184,7 +184,7 @@ int getRooms() {
        users = (char) currentRoom->users.size();
 
        memcpy(roomInfoBuffer + bytes, &(currentRoom->id), 4);
-       memcpy(roomInfoBuffer + 4 + bytes, &(currentRoom->userLimit), 1);
+       roomInfoBuffer[4 + bytes] = currentRoom->userLimit;
        roomInfoBuffer[5 + bytes] = users;
        roomInfoBuffer[6 + bytes] = currentRoom->nameLength;
        memcpy(roomInfoBuffer + 7 + bytes, currentRoom->name, (size_t) currentRoom->nameLength);
@@ -227,7 +227,7 @@ int getUsers(int descriptor) {
        nameLength = strlen(currentUser->name);
 
        memcpy(userInfoBuffer + bytes, &(currentUser->id), 4);
-       userInfoBuffer[4 + bytes] = (char) currentUser->pictureId;
+       userInfoBuffer[4 + bytes] = currentUser->pictureId;
        userInfoBuffer[5 + bytes] = (char) nameLength;
        memcpy(userInfoBuffer + 6 + bytes, currentUser->name, nameLength);
 
