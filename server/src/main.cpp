@@ -14,6 +14,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <fcntl.h>
+#include <signal.h>
 
 #include <map>
 
@@ -36,6 +37,9 @@ char flushBuffer[FLUSH_BUFFER_SIZE];
 char roomInfoBuffer[68102];
 char userInfoBuffer[16897];
 char roomUpdateBuffer[136];
+
+int serverDescriptor;
+pthread_t userOperationsThread;
 
 //User operations thread handler
 void *userOperationsHandler(void *params) {
@@ -292,17 +296,59 @@ void *userOperationsHandler(void *params) {
     }  
 }
 
+void terminateServer(int sigNum) {
+    printf("Terminating server...\n");
+
+    User *currentUser;
+    Room *currentRoom;
+
+    map<int, User*>::iterator userIt = users.begin();
+    map<int, User*>::iterator userEnd = users.end();
+
+    map<int, Room*>::iterator roomIt = rooms.begin();
+    map<int, Room*>::iterator roomEnd = rooms.end();
+
+    while(userIt != userEnd) {
+        currentUser = userIt->second;
+
+        close(currentUser->descriptor);
+
+        free(currentUser->name);
+        delete currentUser;
+
+        userIt++;
+    }
+
+    while(roomIt != roomEnd) {
+        currentRoom = roomIt->second;
+        
+        free(currentRoom->name);
+        delete currentRoom;
+
+        roomIt++;
+    }
+
+    close(epollDescriptor);
+    close(serverDescriptor);
+
+    exit(0);
+}
+
 int main(int argc, char *argv[]) {
+    struct sigaction terminationAction;
+    memset(&terminationAction, 0, sizeof(terminationAction));
+    terminationAction.sa_handler = terminateServer;
+
+    sigaction(SIGINT, &terminationAction, NULL);
+
     sockaddr_in serverAddress;
     sockaddr_in clientAddress;
 
-    int serverDescriptor, clientDescriptor;
+    int clientDescriptor;
     int addressSize;
     int connectionsCounter;
 
-    pthread_t userOperationsThread;
-
-    struct epoll_event *event;
+    struct epoll_event event;
 
     addressSize = sizeof(clientAddress);
     userCounter = 0;
@@ -355,13 +401,12 @@ int main(int argc, char *argv[]) {
         }
 
         if(connectionsCounter < MAX_USERS) {
-            event = (struct epoll_event*) malloc(sizeof(epoll_event));
-            event->events = EPOLLIN;
-            event->data.fd = clientDescriptor;
+            event.events = EPOLLIN;
+            event.data.fd = clientDescriptor;
 
             sem_wait(&epollSemaphor);
 
-            epoll_ctl(epollDescriptor, EPOLL_CTL_ADD, clientDescriptor, event);
+            epoll_ctl(epollDescriptor, EPOLL_CTL_ADD, clientDescriptor, &event);
 
             sem_post(&epollSemaphor);
 
@@ -373,8 +418,6 @@ int main(int argc, char *argv[]) {
             close(clientDescriptor);
         }
     }
-
-    close(epollDescriptor);
 
     return 0;
 }
