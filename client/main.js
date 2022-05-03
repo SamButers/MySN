@@ -15,6 +15,10 @@ const SERVER_PORT = 8080;
 app.whenReady().then(() => {
     createMainWindow();
 
+    commonVariables.windows.main.on('closed', () => {
+        app.quit();
+    });
+
     ipcMain.on('closeWindow', (e, arg) => {
         app.quit();
     });
