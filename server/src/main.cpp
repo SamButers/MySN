@@ -37,6 +37,7 @@ char roomInfoBuffer[68102];
 char userInfoBuffer[16897];
 char roomUpdateBuffer[136];
 
+//
 void *userOperationsHandler(void *params) {
     int updatedDescriptors, bytesRead;
     char functionNumber;
@@ -44,21 +45,16 @@ void *userOperationsHandler(void *params) {
     struct epoll_event events[MAX_USERS];
 
     while(1) {
-        printf("Epoll waiting...\n");
         updatedDescriptors = epoll_wait(epollDescriptor, events, MAX_USERS, -1);
-        printf("Descriptors updated.\n");
         
         for(int c = 0; c < updatedDescriptors; c++) {
             bytesRead = read(events[c].data.fd, &functionNumber, 1);
 
             if(bytesRead != 1) {
                 if(bytesRead == 0) {
-                    printf("User sudden disconnection.\n");
                     logoutUser(events[c].data.fd);
                     continue;
                 }
-
-                printf("Error occurred while reading target function information.\n");
                 
                 clearDescriptor(events[c].data.fd);
                 sendErrorResponse(events[c].data.fd, -1, responseBuffer);
@@ -68,8 +64,6 @@ void *userOperationsHandler(void *params) {
 
             switch(functionNumber) {
                 case 0: {
-                    printf("Login\n");
-
                     int usernameLength, id;
                     char *username;
 
@@ -77,8 +71,6 @@ void *userOperationsHandler(void *params) {
 
                     bytesRead = read(events[c].data.fd, &usernameLength, 1);
                     if(bytesRead != 1) {
-                        printf("Error occurred while reading username length.\n");
-                        
                         clearDescriptor(events[c].data.fd);
                         sendErrorResponse(events[c].data.fd, 0, responseBuffer);
                         break;
@@ -88,8 +80,6 @@ void *userOperationsHandler(void *params) {
 
                     bytesRead = read(events[c].data.fd, username, usernameLength);
                     if(bytesRead != usernameLength) {
-                        printf("Error occurred while reading username.\n");
-                        
                         clearDescriptor(events[c].data.fd);
                         sendErrorResponse(events[c].data.fd, 0, responseBuffer);
                         break;
@@ -104,23 +94,17 @@ void *userOperationsHandler(void *params) {
 
                     write(events[c].data.fd, responseBuffer, 6);
 
-                    printf("ID: %d\nUsername: %s\n", id, username);
-
                     free(username);
                     break;
                 }
 
                 case 1: {
-                    printf("Logout\n");
-
                     logoutUser(events[c].data.fd);
 
                     break;
                 }
 
                 case 2: {
-                    printf("Create room\n");
-
                     int roomNameLength, roomId;
                     char userLimit;
                     char *roomName;
@@ -129,7 +113,7 @@ void *userOperationsHandler(void *params) {
 
                     bytesRead = read(events[c].data.fd, &roomNameLength, 1);
                     if(bytesRead != 1) {
-                        printf("Error occurred while reading room name length.\n");
+                        
                         
                         clearDescriptor(events[c].data.fd);
                         sendErrorResponse(events[c].data.fd, 2, responseBuffer);
@@ -140,8 +124,6 @@ void *userOperationsHandler(void *params) {
 
                     bytesRead = read(events[c].data.fd, roomName, roomNameLength);
                     if(bytesRead != roomNameLength) {
-                        printf("Error occurred while reading room name.\n");
-                        
                         clearDescriptor(events[c].data.fd);
                         sendErrorResponse(events[c].data.fd, 2, responseBuffer);
                         break;
@@ -151,16 +133,12 @@ void *userOperationsHandler(void *params) {
 
                     bytesRead = read(events[c].data.fd, &userLimit, 1);
                     if(bytesRead != 1) {
-                        printf("Error occurred while reading room limit.\n");
-                        
                         clearDescriptor(events[c].data.fd);
                         sendErrorResponse(events[c].data.fd, 2, responseBuffer);
                         break;
                     }
 
                     if(userLimit < 2) {
-                        printf("Invalid room limit.\n");
-
                         responseBuffer[0] = 0;
                         responseBuffer[1] = 2;
                         roomId = -4;
@@ -185,12 +163,11 @@ void *userOperationsHandler(void *params) {
                 }
 
                 case 3: {
-                    printf("Join room.\n");
                     int roomId;
 
                     bytesRead = read(events[c].data.fd, &roomId, 4);
                     if(bytesRead != 4) {
-                        printf("Error occurred while reading room id.\n");
+                        
                         
                         clearDescriptor(events[c].data.fd);
                         sendErrorResponse(events[c].data.fd, 3, responseBuffer);
@@ -209,16 +186,12 @@ void *userOperationsHandler(void *params) {
                 }
 
                 case 4: {
-                    printf("Send message.\n");
-
                     int messageLength = 0;
                     char status;
                     char *messageContent;
 
                     bytesRead = read(events[c].data.fd, &messageLength, 2);
                     if(bytesRead != 2) {
-                        printf("Error occurred while reading message length.\n");
-                        
                         clearDescriptor(events[c].data.fd);
                         sendErrorResponse(events[c].data.fd, 4, responseBuffer);
                         break;
@@ -228,10 +201,6 @@ void *userOperationsHandler(void *params) {
 
                     bytesRead = read(events[c].data.fd, messageContent, messageLength);
                     if(bytesRead != messageLength) {
-                        printf("Error occurred while reading message content.\n");
-                        printf("%d\n", bytesRead);
-                        printf("%d\n", messageLength);
-                        
                         clearDescriptor(events[c].data.fd);
                         sendErrorResponse(events[c].data.fd, 4, responseBuffer);
                         break;
@@ -251,7 +220,6 @@ void *userOperationsHandler(void *params) {
                 }
 
                 case 5: {
-                    printf("Leave room\n");
                     int roomId = leaveRoom(events[c].data.fd);
 
                     responseBuffer[0] = 0;
@@ -264,13 +232,10 @@ void *userOperationsHandler(void *params) {
                 }
 
                 case 6: {
-                    printf("Change info.\n");
                     char pictureId = 0;
 
                     bytesRead = read(events[c].data.fd, &pictureId, 1);
                     if(bytesRead != 1) {
-                        printf("Error occurred while reading picture id.\n");
-                        
                         clearDescriptor(events[c].data.fd);
                         sendErrorResponse(events[c].data.fd, 6, responseBuffer);
                         break;
@@ -288,7 +253,7 @@ void *userOperationsHandler(void *params) {
                 }
 
                 case 7: {
-                    printf("Get rooms\n");
+                    
                     int bytes = getRooms();
 
                     roomInfoBuffer[0] = 0;
@@ -300,7 +265,6 @@ void *userOperationsHandler(void *params) {
                 }
 
                 case 8: {
-                    printf("Get users\n");
                     int bytes = getUsers(events[c].data.fd);
 
                     userInfoBuffer[0] = 0;
@@ -312,14 +276,12 @@ void *userOperationsHandler(void *params) {
                 }
 
                 default:
-                    printf("Invalid function called: %d\n", (int) functionNumber);
+                    break;
             }
         }
-
-        //updateClients(updates);
     }
 
-    printf("Broke from infinite while?\n");
+    
 }
 
 int main() {
@@ -368,7 +330,6 @@ int main() {
     pthread_create(&userOperationsThread, NULL, &userOperationsHandler, NULL);
     
     while(1) {
-        printf("Accepting connections...\n");
         if((clientDescriptor = accept(serverDescriptor, (struct sockaddr *) &clientAddress, (unsigned int*) &addressSize)) < 0) {
             printf("Error accepting client connection.\n");
             printf("Client info:\n\tClient IP: %s\n\tClient Port: %d\n", inet_ntoa(clientAddress.sin_addr), ntohs(clientAddress.sin_port));
@@ -395,7 +356,6 @@ int main() {
         }
     }
 
-    //freeEvents(epollDescriptor);
     close(epollDescriptor);
 
     return 0;

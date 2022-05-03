@@ -51,15 +51,12 @@ void userInfoUpdate(Room *room, User *user) {
 void sendUserUpdate(Room *room, User *user, char type) {
     switch(type) {
         case 0:
-            printf("LEAVE UPDATE\n");
             sendUserLeaveUpdate(room, user);
             break;
         case 1:
-            printf("JOIN UPDATE\n");
             sendUserJoinUpdate(room, user);
             break;
         case 2:
-            printf("INFO UPDATE");
             userInfoUpdate(room, user);
             break;
         default:
@@ -68,7 +65,6 @@ void sendUserUpdate(Room *room, User *user, char type) {
 }
 
 void sendRoomUpdate(Room *room, int updaterDescriptor) {
-    printf("ROOMS UUPDATE\n");
     int reservedBytes;
     char userAmount;
 

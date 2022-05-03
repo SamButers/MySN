@@ -1,9 +1,7 @@
 #include "utility.hpp"
 
 void clearDescriptor(int descriptor) {
-    printf("Reading...\n");
     int readBytes = recv(descriptor, &flushBuffer, FLUSH_BUFFER_SIZE, MSG_DONTWAIT);
-    printf("READ IT\n");
 
     if(readBytes < 0)
         printf("Error on flushing.\n");

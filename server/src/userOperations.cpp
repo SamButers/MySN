@@ -12,13 +12,8 @@ int loginUser(int descriptor, char *displayName, int displayNameSize) {
         newUser->descriptor = descriptor;
         newUser->roomId = -1;
         newUser->name = (char*) malloc(displayNameSize);
-
-        printf("Copying username...\n");
-        //getchar();
         
         memcpy(newUser->name, displayName, displayNameSize);
-
-        //getchar();
 
         return userCounter++;
     }
@@ -27,8 +22,6 @@ int loginUser(int descriptor, char *displayName, int displayNameSize) {
         return users[descriptor]->id;
 }
 
-// Pending:
-//  Send update
 int createRoom(char *roomName, int roomNameLength, char userLimit) {
     Room *newRoom = new Room();
 
@@ -43,8 +36,6 @@ int createRoom(char *roomName, int roomNameLength, char userLimit) {
     return newRoom->id;
 }
 
-// Pending:
-//  Send update
 int joinRoom(int descriptor, int roomId) {
     Room *targetRoom = rooms.find(roomId) != rooms.end() ? rooms[roomId] : NULL; //Storing the iterator may be more efficient, but perhaps less readable
     User *targetUser = users.find(descriptor) != users.end() ? users[descriptor] : NULL;
@@ -166,7 +157,6 @@ void logoutUser(int descriptor) {
     }
 }
 
-// Can be optimized by buffering
 int getRooms() {
     int bytes, roomCount;
     char users;
@@ -177,8 +167,6 @@ int getRooms() {
     roomCount = 0;
 
     while(it != rooms.end()) {
-        // id, userLimit, users, roomnamelength => 7 bytes
-        // roomname => ? bytes
        currentRoom = it->second;
 
        users = (char) currentRoom->users.size();
