@@ -1,4 +1,4 @@
-#include "updateFunctions.hpp"
+#include "update.hpp"
 
 void sendUserJoinUpdate(Room *room, User *user) {
     int userDescriptor;
